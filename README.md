@@ -16,7 +16,7 @@ Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You ca
 Watch the stream in the current channel.
 
     /whostream
-Checking online stream for the followed channel, you need to enter your [Twitch token](http://www.twitchapps.com/tmi) at line 6.
+Checking online stream for the followed channel, you need to enter your [Twitch token](http://www.twitchapps.com/tmi) at line 6, the one you used with livestreamer should work.
 
     /whotwitch twitchusername
 Print Twitch's user information.
