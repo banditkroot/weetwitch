@@ -5,9 +5,9 @@ use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
 my $sc_name = "WeeTwitch";
-my $version = "0.31";
-my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner);
-my @stream; #Récupère les streams en cours dans le tableau streams[] de $decode
+my $version = "0.33";
+my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str);
+my (@stream, @clear); #Récupère les streams en cours dans le tableau streams[] de $decode
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
@@ -17,6 +17,8 @@ weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", 
 weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
+weechat::hook_modifier("irc_in_USERNOTICE", "userroomstate_cb", "");
+weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
 
 #Commande /whostream
 sub who_stream {
@@ -171,6 +173,20 @@ sub server {
 		weechat::print(weechat::current_buffer(), "*\tServeur et/ou channel non valide.");
 		return 0;
 	}
+}
+
+#Affiche les message d'expulsion de twitch
+sub clearchat_cb {
+	(undef, undef, undef, $clear_str) = @_;
+	@clear  = split(/ /, $clear_str);
+	$buffer = weechat::buffer_search("irc", "twitch.$clear[3]");
+	if (substr($clear[0], 1, 12) eq"ban-duration") {
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . "a été expulsé du salon." . weechat::color("-bold"));
+	}
+	else {
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . "a été banni du salon." . weechat::color("-bold"));
+	}
+	return "";
 }
 
 #Ignore les commandes USERSTATE et ROOMSTATE envoyé par twitch
