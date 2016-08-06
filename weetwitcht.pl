@@ -5,7 +5,7 @@ use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
 my $sc_name = "WeeTwitch";
-my $version = "0.21";
+my $version = "0.3";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner);
 my @stream; #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -14,6 +14,8 @@ weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_s
 weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur.", "", "", "", "whotwitch", "");
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
+weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
+weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
 
 #Commande /whostream
 sub who_stream {
@@ -168,6 +170,11 @@ sub server {
 		weechat::print(weechat::current_buffer(), "*\tServeur et/ou channel non valide.");
 		return 0;
 	}
+}
+
+#Ignore les commandes USERSTATE et ROOMSTATE envoyé par twitch
+sub userroomstate_cb {
+	return "";
 }
 
 #Déchargement de script
