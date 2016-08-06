@@ -5,7 +5,7 @@ use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
 my $sc_name = "WeeTwitch";
-my $version = "0.3";
+my $version = "0.31";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner);
 my @stream; #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -16,6 +16,7 @@ weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.",
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
 weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
+weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
 
 #Commande /whostream
 sub who_stream {
