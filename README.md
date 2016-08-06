@@ -1,5 +1,5 @@
 # weetwitch
-Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You can check your followed stream from [Twitch.tv](http://twitch.tv). You can also check information of Twitch's users.
+Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You can check your followed stream from [Twitch.tv](http://twitch.tv). You can also check information of Twitch's users. The script ignore the ROOMSTATE and USERSTATE command send by the server, if twitch/commands capabilities are activated.
 
 ##Dependencies :
 * [Livestreamer](http://livestreamer.tanuki.se/)
