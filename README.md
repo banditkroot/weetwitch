@@ -11,12 +11,15 @@ Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You ca
 ##IRC Server :
 * Twitch.tv : irc.twitch.tv/6667
 
+##Before starting :
+You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this two on line 6 and 7 on the script.
+
 ##Script commands :
     /stream
 Watch the stream in the current channel.
 
     /whostream
-Checking online stream for the followed channel, you need to enter your [Twitch token](http://www.twitchapps.com/tmi) at line 6, the one you used with livestreamer should work.
+Checking online stream for the followed channel.
 
     /whotwitch twitchusername
 Print Twitch's user information.
