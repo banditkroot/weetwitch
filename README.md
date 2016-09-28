@@ -12,7 +12,7 @@ Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You ca
 * Twitch.tv : irc.twitch.tv/6667
 
 ##Before starting :
-You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this two on line 6 and 7 on the script. The script require `user_read`, `chat_login` and `user_follows_edit` scope.
+You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this two on line 6 and 7 on the script. You need to enter your Twitch username line 8. The script require `user_read`, `chat_login` and `user_follows_edit` scope.
 
 ##Script commands :
     /stream
