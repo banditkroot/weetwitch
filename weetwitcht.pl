@@ -4,8 +4,9 @@ use JSON qw(decode_json);
 use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
+my $clientid = ""; #Your client-id here !
 my $sc_name = "WeeTwitch";
-my $version = "0.33";
+my $version = "0.4";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str);
 my (@stream, @clear); #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -66,14 +67,14 @@ sub whotwitch {
 	$user = lc($_[2]);
 	if ($user) {
 		buffer();
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -X GET https://api.twitch.tv/kraken/users/$user`;
+		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users/$user`;
 		$decode = decode_json($json);
 		weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $decode->{'name'} . weechat::color("-bold"));
 		weechat::print("$buffer","Type\t$decode->{'type'}");
 		if ($decode->{'bio'}) { weechat::print("$buffer","Bio\t$decode->{'bio'}"); }
 		weechat::print("$buffer","Créé le\t" . substr($decode->{'created_at'},8,2) . "/" . substr($decode->{'created_at'},5,2) . "/" . substr($decode->{'created_at'},0,4) . " à " . substr($decode->{'created_at'},11,8));
 		weechat::print("$buffer","Dernière MAJ\t" . substr($decode->{'updated_at'},8,2) . "/" . substr($decode->{'updated_at'},5,2) . "/" . substr($decode->{'updated_at'},0,4) . " à " . substr($decode->{'updated_at'},11,8));
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -X GET https://api.twitch.tv/kraken/users/$user/follows/channels`;
+		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Client-ID: $clientid'  -X GET https://api.twitch.tv/kraken/users/$user/follows/channels`;
 		$decode = decode_json($json);
 		if ($decode->{'_total'} eq "1") {
 			@stream = @{$decode->{'follows'}};
@@ -96,7 +97,7 @@ sub stream {
 	if (server()) {
 		weechat::print($buffer, "---\tLancement du stream twitch.tv/$channel...");
 		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -X GET https://api.twitch.tv/kraken/streams/$channel`;
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$channel`;
 			$decode = decode_json($json);
 			$live = $decode->{'stream'};
 			if ($live) {
@@ -131,7 +132,7 @@ sub stream_end {
 sub viewer {
 	if (server()) {
 		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -X GET https://api.twitch.tv/kraken/streams/$channel`;
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$channel`;
 			$decode = decode_json($json);
 			$live = $decode->{'stream'};
 			if ($live) {
