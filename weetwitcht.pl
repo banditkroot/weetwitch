@@ -5,8 +5,9 @@ use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
+my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.4";
+my $version = "0.5";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str);
 my (@stream, @clear); #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -15,6 +16,8 @@ weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_s
 weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur.", "", "", "", "whotwitch", "");
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
+weechat::hook_command("follow", "Juste taper /follow.", "", "", "", "follow", "");
+weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollow", "");
 weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
@@ -144,6 +147,34 @@ sub viewer {
 		}
 		catch {
 			weechat::print(weechat::current_buffer(), "*\tImpossible de récupérer le topic.");
+		};
+	}
+	return weechat::WEECHAT_RC_OK;
+}
+
+#Suivre une chaine
+sub follow {
+	if (server()) {
+		try {
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Authorization: OAuth $token' -X PUT https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$channel`;
+			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Chaine suivie.");
+		}
+		catch {
+			weechat::print(weechat::current_buffer(), "*\tImpossible de suivre la chaine.");
+		};
+	}
+	return weechat::WEECHAT_RC_OK;
+}
+
+#Ne plus suivre une chaine
+sub unfollow {
+	if (server()) {
+		try {
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Authorization: OAuth $token' -X DELETE https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$channel`;
+			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "La chaine n'est plus suivie.");
+		}
+		catch {
+			weechat::print(weechat::current_buffer(), "*\tImpossible de ne plus suivre la chaine.");
 		};
 	}
 	return weechat::WEECHAT_RC_OK;
