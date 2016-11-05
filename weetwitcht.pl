@@ -7,9 +7,9 @@ my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
 my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.5";
-my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str);
-my (@stream, @clear); #Récupère les streams en cours dans le tableau streams[] de $decode
+my $version = "0.6";
+my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr);
+my (@stream, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
@@ -32,6 +32,7 @@ sub who_stream {
 		$decode = decode_json($json);
 		$live = $decode->{'_total'};
 		@stream = @{$decode->{'streams'}};
+		$incr = 0;
 		if ($live eq "0") {
 			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
 			return weechat::WEECHAT_RC_OK;
@@ -51,11 +52,13 @@ sub who_stream {
 				$mature = "avec";
 			}
 			if ($displayname->{'channel'}{'partner'}) {
-				$partner = weechat::color("yellow") . "*";
+				$partner = weechat::color("yellow") . $incr;
 			}
 			else {
-				$partner = "*";
+				$partner = $incr;
 			}
+			$incr++;
+			push @liste, lc($displayname->{'channel'}{'display_name'});
 			weechat::print($buffer, "$partner\t" . weechat::color("bold") . "$displayname->{'channel'}{'display_name'}" . weechat::color("-bold") . " stream $game $mature $displayname->{'viewers'} spectateurs.");
 		}
 	}
@@ -184,12 +187,27 @@ sub unfollow {
 sub buffer {
 	$buffer = weechat::buffer_search("perl", $sc_name);
 	if ($buffer eq "") {
-		$buffer = weechat::buffer_new($sc_name, "", "", "", "");
-		weechat::buffer_set($buffer, "title", "$sc_name $version");
+		$buffer = weechat::buffer_new($sc_name, "buffer_input", "", "", "");
+		weechat::buffer_set($buffer, "title", "$sc_name $version     [q] pour quitter.");
 	}
 	else {
 		weechat::print($buffer, weechat::color("yellow") . "*\t". weechat::color("magenta") . "-" x 10);
 	}
+}
+
+#Pour joindre un cannal après un whostream
+sub buffer_input {
+	my ($data, $buff, $string) = ($_[0], $_[1], $_[2]);
+	if ($string eq "q") {
+		weechat::buffer_close($buff);
+	}
+	elsif ($string =~ m/^\d+$/) {
+		if ($string <= $#liste) {
+			weechat::command("", "/quote -server twitch JOIN #" . $liste[$string]);
+			weechat::command("", "/wait 1s /stream");
+		}
+	}
+	return weechat::WEECHAT_RC_OK;
 }
 
 #Vérification server et channel correct
