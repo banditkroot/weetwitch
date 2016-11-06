@@ -7,7 +7,7 @@ my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
 my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.6";
+my $version = "0.61";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr);
 my (@stream, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -32,7 +32,8 @@ sub who_stream {
 		$decode = decode_json($json);
 		$live = $decode->{'_total'};
 		@stream = @{$decode->{'streams'}};
-		$incr = 0;
+		@liste = undef;
+		$incr = 1;
 		if ($live eq "0") {
 			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
 			return weechat::WEECHAT_RC_OK;
