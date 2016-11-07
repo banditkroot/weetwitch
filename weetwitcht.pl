@@ -7,7 +7,7 @@ my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
 my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.61";
+my $version = "0.62";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr);
 my (@stream, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -232,10 +232,10 @@ sub clearchat_cb {
 	@clear  = split(/ /, $clear_str);
 	$buffer = weechat::buffer_search("irc", "twitch.$clear[3]");
 	if (substr($clear[0], 1, 12) eq"ban-duration") {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . "a été expulsé du salon." . weechat::color("-bold"));
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . " a été expulsé du salon." . weechat::color("-bold"));
 	}
 	else {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . "a été banni du salon." . weechat::color("-bold"));
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . " a été banni du salon." . weechat::color("-bold"));
 	}
 	return "";
 }
