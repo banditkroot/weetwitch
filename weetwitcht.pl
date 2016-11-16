@@ -7,7 +7,7 @@ my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
 my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.62";
+my $version = "0.63";
 my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr);
 my (@stream, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
@@ -76,7 +76,7 @@ sub whotwitch {
 		buffer();
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v3+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users/$user`;
 		$decode = decode_json($json);
-		weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $decode->{'name'} . weechat::color("-bold"));
+		weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $decode->{'display_name'} . weechat::color("-bold"));
 		weechat::print("$buffer","Type\t$decode->{'type'}");
 		if ($decode->{'bio'}) { weechat::print("$buffer","Bio\t$decode->{'bio'}"); }
 		weechat::print("$buffer","Créé le\t" . substr($decode->{'created_at'},8,2) . "/" . substr($decode->{'created_at'},5,2) . "/" . substr($decode->{'created_at'},0,4) . " à " . substr($decode->{'created_at'},11,8));
