@@ -5,13 +5,13 @@ use Try::Tiny;
 
 my $token = ""; #Your Twitch Token here !
 my $clientid = ""; #Your client-id here !
-my $twitch_un = ""; #Your Twitch username
 my $sc_name = "WeeTwitch";
-my $version = "0.63";
-my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr);
+my $version = "0.64";
+my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $twitch_un);
 my (@stream, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
+$twitch_un = weechat::info_get("irc_nick", "twitch");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
 weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur.", "", "", "", "whotwitch", "");
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
