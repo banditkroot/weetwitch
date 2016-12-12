@@ -27,5 +27,11 @@ Print Twitch's user information.
     /viewers
 Print the numbers of viewers of the current channel if it's live 
 
+    /follow
+Follow the current channel.
+
+    /unfollow
+Unfollow the current channel.
+
 ##Join channel and launching stream :
 After a whostream command, you can enter the number of the channel list for joining the channel and launching the stream automatically.
