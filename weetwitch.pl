@@ -4,9 +4,9 @@ use JSON;
 use Try::Tiny;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.1";
-my ($token, $clientid, $channel, $server, $json, $decode, $fjson, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $user_id);
-my (@stream, @users, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
+my $version = "0.7.2";
+my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $user_id);
+my (@clear, @liste);
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
@@ -25,8 +25,8 @@ my $file = weechat::info_get('weechat_dir', '') . "/weetwitch.json";
 open(FICHIER, "<", $file) or die weechat::print(weechat::current_buffer(), "*\tImpossible d'ouvrir le fichier de configuration.");
 	@liste = <FICHIER>;
 close(FICHIER);
-$fjson = join("", @liste);
-$fdecode = decode_json($fjson);
+$json = join("", @liste);
+$fdecode = decode_json($json);
 try {
 	$token = $fdecode->{'token'};
 	$clientid = $fdecode->{'clientid'};
@@ -44,7 +44,6 @@ sub who_stream {
 	try {
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X GET https://api.twitch.tv/kraken/streams/followed`;
 		$decode = decode_json($json);
-		@stream = @{$decode->{'streams'}};
 		@liste = undef;
 		$incr = 1;
 		if ($decode->{'_total'} eq "0") {
@@ -52,7 +51,7 @@ sub who_stream {
 			return weechat::WEECHAT_RC_OK;
 		}
 		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Stream en cours :" . weechat::color("-bold"));
-		foreach my $displayname (@stream) {
+		foreach my $displayname (@{$decode->{'streams'}}) {
 			if ($displayname->{'channel'}{'game'}) {
 				$game = "du " . weechat::color("bold") . $displayname->{'channel'}{'game'} . weechat::color("-bold");
 			}
@@ -89,8 +88,7 @@ sub whotwitch {
 		buffer();
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users?login=$user&api_version=5`;
 		$decode = decode_json($json);
-		@users = @{$decode->{'users'}};
-		foreach my $displayuser (@users) {
+		foreach my $displayuser (@{$decode->{'users'}}) {
 			$user_id = $displayuser->{'_id'};
 			weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $displayuser->{'display_name'} . weechat::color("-bold"));
 			weechat::print("$buffer","Type\t$displayuser->{'type'}");
@@ -100,8 +98,7 @@ sub whotwitch {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid'  -X GET https://api.twitch.tv/kraken/users/$user_id/follows/channels`;
 			$decode = decode_json($json);
 			if ($decode->{'_total'} eq "1") {
-				@stream = @{$decode->{'follows'}};
-				foreach my $displayfollow (@stream) {
+				foreach my $displayfollow (@{$decode->{'follows'}}) {
 					$follow = " : " . $displayfollow->{'channel'}{'name'};
 				}
 			}
@@ -124,8 +121,7 @@ sub stream {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 			$decode = decode_json($json);
 			if ($decode->{'_total'} == 1) {
-				@stream = @{$decode->{'streams'}};
-				foreach my $displayinfo (@stream) {
+				foreach my $displayinfo (@{$decode->{'streams'}}) {
 					weechat::buffer_set(weechat::current_buffer(), "title", $displayinfo->{'channel'}{'status'});
 					weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
 					weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
@@ -161,8 +157,7 @@ sub viewer {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 			$decode = decode_json($json);
 			if ($decode->{'_total'} == 1) {
-				@stream = @{$decode->{'streams'}};
-				foreach my $displayinfo (@stream) {
+				foreach my $displayinfo (@{$decode->{'streams'}}) {
 					weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Actuellement $displayinfo->{'viewers'} spectateurs.");
 				}
 			}
@@ -251,7 +246,6 @@ sub server {
 #Récupération du userid
 sub userid{
 	$user = $_[0];
-	$user_id = undef;
 	foreach my $displayid (@{$fdecode->{'id'}}) {
 		if ($user eq $displayid->{'name'}) {
 			$user_id = $displayid->{'userid'};
@@ -260,8 +254,7 @@ sub userid{
 	}
 	$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users?login=$user&api_version=5`;
 	$decode = decode_json($json);
-	@users = @{$decode->{'users'}};
-	foreach my $displayuser (@users) {
+	foreach my $displayuser (@{$decode->{'users'}}) {
 		$user_id = $displayuser->{'_id'};
 	}
 	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}})]{'name'} = $user;
