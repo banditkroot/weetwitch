@@ -1,18 +1,14 @@
 use strict;
 use warnings;
-use JSON qw(decode_json);
+use JSON;
 use Try::Tiny;
 
-my $token = ""; #Your Twitch Token here !
-my $clientid = ""; #Your client-id here !
 my $sc_name = "WeeTwitch";
-my $version = "0.7";
-my ($channel, $server, $json, $decode, $live, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $twitch_un, $user_id);
+my $version = "0.7.1";
+my ($token, $clientid, $channel, $server, $json, $decode, $fjson, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $user_id);
 my (@stream, @users, @clear, @liste); #Récupère les streams en cours dans le tableau streams[] de $decode
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
-userid(weechat::info_get("irc_nick", "twitch"));
-$twitch_un = $user_id;
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
 weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur.", "", "", "", "whotwitch", "");
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
@@ -25,17 +21,33 @@ weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_USERNOTICE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
 
+my $file = weechat::info_get('weechat_dir', '') . "/weetwitch.json";
+open(FICHIER, "<", $file) or die weechat::print(weechat::current_buffer(), "*\tImpossible d'ouvrir le fichier de configuration.");
+	@liste = <FICHIER>;
+close(FICHIER);
+$fjson = join("", @liste);
+$fdecode = decode_json($fjson);
+try {
+	$token = $fdecode->{'token'};
+	$clientid = $fdecode->{'clientid'};
+}
+catch {
+	weechat::print(weechat::current_buffer(), "*\tPas de token et client id Twitch trouvé.");
+};
+
+userid(weechat::info_get("irc_nick", "twitch"));
+my $twitch_un = $user_id;
+
 #Commande /whostream
 sub who_stream {
 	buffer();
 	try {
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X GET https://api.twitch.tv/kraken/streams/followed`;
 		$decode = decode_json($json);
-		$live = $decode->{'_total'};
 		@stream = @{$decode->{'streams'}};
 		@liste = undef;
 		$incr = 1;
-		if ($live eq "0") {
+		if ($decode->{'_total'} eq "0") {
 			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
 			return weechat::WEECHAT_RC_OK;
 		}
@@ -108,7 +120,6 @@ sub stream {
 	buffer();
 	if (server()) {
 		weechat::print($buffer, "---\tLancement du stream twitch.tv/$channel...");
-		userid($channel);
 		try {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 			$decode = decode_json($json);
@@ -147,7 +158,6 @@ sub stream_end {
 sub viewer {
 	if (server()) {
 		try {
-			userid($channel);
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 			$decode = decode_json($json);
 			if ($decode->{'_total'} == 1) {
@@ -170,7 +180,6 @@ sub viewer {
 #Suivre une chaine
 sub follow {
 	if (server()) {
-		userid($channel);
 		try {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X PUT https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$user_id`;
 			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Chaine suivie.");
@@ -185,7 +194,6 @@ sub follow {
 #Ne plus suivre une chaine
 sub unfollow {
 	if (server()) {
-		userid($channel);
 		try {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X DELETE https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$user_id`;
 			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "La chaine n'est plus suivie.");
@@ -231,6 +239,7 @@ sub server {
 		$channel = substr(weechat::buffer_get_string(weechat::current_buffer(), "localvar_channel"), 1);
 	}
 	if ($server eq "twitch") {
+		userid($channel);
 		return 1;
 	}
 	else {
@@ -242,12 +251,24 @@ sub server {
 #Récupération du userid
 sub userid{
 	$user = $_[0];
+	$user_id = undef;
+	foreach my $displayid (@{$fdecode->{'id'}}) {
+		if ($user eq $displayid->{'name'}) {
+			$user_id = $displayid->{'userid'};
+			return;
+		}
+	}
 	$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users?login=$user&api_version=5`;
 	$decode = decode_json($json);
 	@users = @{$decode->{'users'}};
 	foreach my $displayuser (@users) {
 		$user_id = $displayuser->{'_id'};
 	}
+	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}})]{'name'} = $user;
+	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}}) - 1]{'userid'} = $user_id;
+	open(FICHADD, ">:encoding(UTF-8)", $file);
+		print FICHADD encode_json($fdecode);
+	close(FICHADD);
 }
 
 #Affiche les message d'expulsion de twitch
@@ -255,7 +276,7 @@ sub clearchat_cb {
 	(undef, undef, undef, $clear_str) = @_;
 	@clear  = split(/ /, $clear_str);
 	$buffer = weechat::buffer_search("irc", "twitch.$clear[3]");
-	if (substr($clear[0], 1, 12) eq"ban-duration") {
+	if (substr($clear[0], 1, 12) eq "ban-duration") {
 		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . " a été expulsé du salon." . weechat::color("-bold"));
 	}
 	else {

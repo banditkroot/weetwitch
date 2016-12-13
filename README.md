@@ -12,7 +12,7 @@ Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You ca
 * Twitch.tv : irc.twitch.tv/6667
 
 ##Before starting :
-You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this two on line 6 and 7 on the script. The script require `user_read`, `chat_login` and `user_follows_edit` scope. The script must be copy to `~/.weechat/perl/autoload` folder.
+You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this in the `weetwitch.json` file. The script require `user_read`, `chat_login` and `user_follows_edit` scope. The script must be copy to `~/.weechat/perl/autoload` folder and the json file to `~/.weechat` folder.
 
 ##Script commands :
     /stream
@@ -35,3 +35,6 @@ Unfollow the current channel.
 
 ##Join channel and launching stream :
 After a whostream command, you can enter the number of the channel list for joining the channel and launching the stream automatically.
+
+-----
+I decided to make a json file for the configuration and for register the client id, that they be used by the script, for reduce the number of request doing to the API server and accelerate the script execution.
