@@ -305,7 +305,7 @@ sub privmsg_out_cb {
 	}
 	else {
 		return "PRIVMSG jtv :.w " . $$cb_str{nick} . " " . $$cb_str{text};
-	}		
+	}
 }
 
 #Subscription
