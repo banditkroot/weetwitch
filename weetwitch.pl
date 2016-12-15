@@ -4,9 +4,10 @@ use JSON;
 use Try::Tiny;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.2";
-my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $clear_str, $incr, $user_id);
-my (@clear, @liste);
+my $version = "0.7.3";
+my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $user_id, $reason);
+my @liste;
+my %tags;
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
@@ -15,10 +16,12 @@ weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.",
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
 weechat::hook_command("follow", "Juste taper /follow.", "", "", "", "follow", "");
 weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollow", "");
+weechat::hook_modifier("irc_in_WHISPER", "whisper_cb", "");
+weechat::hook_modifier("irc_out_PRIVMSG", "privmsg_out_cb", "");
 weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
 weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
-weechat::hook_modifier("irc_in_USERNOTICE", "userroomstate_cb", "");
+weechat::hook_modifier("irc_in_USERNOTICE", "usernotice_cb", "");
 weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
 
 my $file = weechat::info_get('weechat_dir', '') . "/weetwitch.json";
@@ -266,15 +269,53 @@ sub userid{
 
 #Affiche les message d'expulsion de twitch
 sub clearchat_cb {
-	(undef, undef, undef, $clear_str) = @_;
-	@clear  = split(/ /, $clear_str);
-	$buffer = weechat::buffer_search("irc", "twitch.$clear[3]");
-	if (substr($clear[0], 1, 12) eq "ban-duration") {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . " a été expulsé du salon." . weechat::color("-bold"));
+	(undef, undef, undef, $cb_str) = @_;
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	$buffer = weechat::buffer_search("irc", "twitch." . $$cb_str{channel});
+	%tags = split(/[;=]/, $$cb_str{tags});
+	if (exists($tags{"ban-reason"})) {
+		$reason = "(" . join(" ", split(/[\\]s/, $tags{"ban-reason"})) . ")";
 	}
 	else {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("bold") . weechat::color("magenta") . substr($clear[4], 1) . " a été banni du salon." . weechat::color("-bold"));
+		$reason = "(Pas de raison.)";
 	}
+	if (exists($tags{"ban-duration"})) {
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("magenta") . $$cb_str{text} . " a été expulsé du salon pour " . $tags{"ban-duration"} . "s. $reason");
+	}
+	else {
+		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("magenta") . $$cb_str{text} . " a été banni du salon. $reason");
+	}
+	return "";
+}
+
+#Affiche les whipers de twitch
+sub whisper_cb {
+	(undef, undef, undef, $cb_str) = @_;
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	return ":" . $$cb_str{host} . " PRIVMSG " . $$cb_str{arguments};
+}
+
+#Pour envoyer les message privé
+sub privmsg_out_cb {
+	(undef, undef, $server, $cb_str) = @_;
+	if ($server ne "twitch") { return $cb_str; }
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	if ($$cb_str{channel} =~ "#") {
+		return "PRIVMSG " . $$cb_str{channel} . " " . $$cb_str{text};
+	}
+	else {
+		return "PRIVMSG jtv :.w " . $$cb_str{nick} . " " . $$cb_str{text};
+	}		
+}
+
+#Subscription
+sub usernotice_cb {
+	(undef, undef, undef, $cb_str) = @_;
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	$buffer = weechat::buffer_search("irc", "twitch." . $$cb_str{channel});
+	%tags = split(/[;=]/, $$cb_str{tags});
+	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
+	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason . " Message : " . $$cb_str{text});
 	return "";
 }
 

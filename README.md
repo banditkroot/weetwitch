@@ -1,40 +1,41 @@
 # weetwitch
-Launch [Twitch.tv](http://twitch.tv) stream in Weechat with livestreamer. You can check your followed stream from [Twitch.tv](http://twitch.tv). You can also check information of Twitch's users. The script ignore the ROOMSTATE, USERSTATE, USERNOTICE and HOSTTARGET command send by the server, if twitch/commands capabilities are activated, but integrate the CLEARCHAT command.
+Lance les streams de [Twitch.tv](http://twitch.tv) dans Weechat avec livestreamer. Vous pouvez vérifier les personnes que vous suivez sur [Twitch.tv](http://twitch.tv). Il y a aussi la possibilité de récupérer des informations sur les utilisateurs. Le script ignore les commandes ROOMSTATE et USERSTATE envoyées par le serveur, si les capacités twitch/commands sont activées, la commande HOSTARGET est automatiquement indiquée en notice. Les script gère les whispers et les messages privés, il indique aussi quand des personnes sont expulsées/bannies d'un salon, ainsi que les subscribes.
 
-##Dependencies :
+##Dépendances :
 * [Livestreamer](http://livestreamer.tanuki.se/)
 * Perl
    * libjson-perl
    * libtry-tiny-perl
 * curl
 
-##IRC Server :
+##Serveur IRC :
 * Twitch.tv : irc.twitch.tv/6667
+* Twitch.tv : irc.twitch.tv/6697 pour le SSL
 
-##Before starting :
-You need to [register an app on Twitch API](https://www.twitch.tv/kraken/oauth2/clients/new), with this you can have a client-id and a Twitch token, enter this in the `weetwitch.json` file. The script require `user_read`, `chat_login` and `user_follows_edit` scope. The script must be copy to `~/.weechat/perl/autoload` folder and the json file to `~/.weechat` folder.
+##Avant de commencer :
+Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://www.twitch.tv/kraken/oauth2/clients/new), pour obtenir un client-id et un  Twitch token, à entrer dans le fichier `weetwitch.json`. Le script à besoin des [scopes](https://github.com/justintv/Twitch-API/blob/master/authentication.md#scope) `user_read`, `chat_login` et `user_follows_edit`. Le script perl doit être copié dans le dossier `~/.weechat/perl/autoload` et le fichier json dans le dossier `~/.weechat`.
 
-##Script commands :
+##Commandes du script :
     /stream
-Watch the stream in the current channel.
+Regarder le stream du salon en cours.
 
     /whostream
-Checking online stream for the followed channel.
+Vérifier les sctreams suivit en cours.
 
     /whotwitch twitchusername
-Print Twitch's user information.
+Affiche les informations d'un utilisateur Twitch.
 
     /viewers
-Print the numbers of viewers of the current channel if it's live 
+Affiche le nombre de spectateurs d'un stream en cours.
 
     /follow
-Follow the current channel.
+Suivre la chaine du salon courant.
 
     /unfollow
-Unfollow the current channel.
+Ne plus suivre la chaine du salon courant.
 
-##Join channel and launching stream :
-After a whostream command, you can enter the number of the channel list for joining the channel and launching the stream automatically.
+##Joindre un salon et lancer le stream automatiquement :
+Après la commande `whostream`, il suffit d'entrer le numéro d'un stream afficher pour joindre le salon et que le stream se lance automatiquement.
 
 -----
-I decided to make a json file for the configuration and for register the client id, that they be used by the script, for reduce the number of request doing to the API server and accelerate the script execution.
+J'ai décidé de faire un fichier de configuration en json pour enregister les user-id utilisés par le script, les user-id sont devenus obligatoire pour intéragir avec l'APIv5, cela permettra sur la longueur de réduir le nombre de requêtes faites à l'API et donc d'accélerer la vitesse du script.
