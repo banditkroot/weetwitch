@@ -2,10 +2,13 @@ use strict;
 use warnings;
 use JSON;
 use Try::Tiny;
+use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.3";
-my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $user_id, $reason);
+my $version = "0.7.4";
+my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
+my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
+my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
 my %tags;
 
@@ -96,8 +99,10 @@ sub whotwitch {
 			weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $displayuser->{'display_name'} . weechat::color("-bold"));
 			weechat::print("$buffer","Type\t$displayuser->{'type'}");
 			if ($decode->{'bio'}) { weechat::print("$buffer","Bio\t$displayuser->{'bio'}"); }
-			weechat::print("$buffer","Créé le\t" . substr($displayuser->{'created_at'},8,2) . "/" . substr($displayuser->{'created_at'},5,2) . "/" . substr($displayuser->{'created_at'},0,4) . " à " . substr($displayuser->{'created_at'},11,8));
-			weechat::print("$buffer","Dernière MAJ\t" . substr($displayuser->{'updated_at'},8,2) . "/" . substr($displayuser->{'updated_at'},5,2) . "/" . substr($displayuser->{'updated_at'},0,4) . " à " . substr($displayuser->{'updated_at'},11,8));
+			timeparse($displayuser->{'created_at'});
+			weechat::print("$buffer","Créé le\t$time");
+			timeparse($displayuser->{'updated_at'});
+			weechat::print("$buffer","Dernière MAJ\t$time");
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid'  -X GET https://api.twitch.tv/kraken/users/$user_id/follows/channels`;
 			$decode = decode_json($json);
 			if ($decode->{'_total'} eq "1") {
@@ -129,12 +134,14 @@ sub stream {
 					weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
 					weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
 					weechat::print($buffer, "Spectateurs\t$displayinfo->{'viewers'}");
-					weechat::print($buffer, "Commencé\tle " . substr($displayinfo->{'created_at'},8,2) . "/" . substr($displayinfo->{'created_at'},5,2) . "/" . substr($displayinfo->{'created_at'},0,4) . " à " . substr($displayinfo->{'created_at'},11,8));
+					timeparse($displayinfo->{'created_at'});
+					weechat::print($buffer, "Commencé\tle $time");
 					weechat::print($buffer, "Vidéo source\t$displayinfo->{'video_height'}p à $displayinfo->{'average_fps'}fps");
 					weechat::print($buffer, "Délais\t$displayinfo->{'delay'}");
 					weechat::print($buffer, "Langage\t$displayinfo->{'channel'}{'broadcaster_language'}");
 					if ($displayinfo->{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
 					if ($displayinfo->{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
+					weechat::print($buffer, "Abonnés\t$displayinfo->{'channel'}{'followers'}");
 				}
 			}
 		}
@@ -317,6 +324,13 @@ sub usernotice_cb {
 	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
 	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason . " Message : " . $$cb_str{text});
 	return "";
+}
+
+#formatage des dates
+sub timeparse {
+	($ss,$mm,$hh,$day,$month,$year,undef) = strptime(@_);
+	$year = 1900 + $year;
+	$time = "$day/$month/$year à $hh:$mm:" . int($ss);
 }
 
 #Ignore les commandes USERSTATE et ROOMSTATE envoyé par twitch

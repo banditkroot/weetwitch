@@ -6,6 +6,7 @@ Lance les streams de [Twitch.tv](http://twitch.tv) dans Weechat avec livestreame
 * Perl
    * libjson-perl
    * libtry-tiny-perl
+   * libtimedate-perl
 * curl
 
 ##Serveur IRC :
