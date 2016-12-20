@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.4";
+my $version = "0.7.5";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -272,6 +272,8 @@ sub userid{
 	open(FICHADD, ">:encoding(UTF-8)", $file);
 		print FICHADD encode_json($fdecode);
 	close(FICHADD);
+	buffer();
+	weechat::print($buffer, weechat::color("yellow") . "*\t" . weechat::color("blue") ."ID utilisateur ajouté au fichier $file");
 }
 
 #Affiche les message d'expulsion de twitch
