@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.5";
+my $version = "0.7.6";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -41,7 +41,7 @@ catch {
 	weechat::print(weechat::current_buffer(), "*\tPas de token et client id Twitch trouvé.");
 };
 
-userid(weechat::info_get("irc_nick", "twitch"));
+userid(weechat::config_string(weechat::config_get("irc.server.twitch.nicks")));
 my $twitch_un = $user_id;
 
 #Commande /whostream
