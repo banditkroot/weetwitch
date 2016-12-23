@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.6";
+my $version = "0.7.7"; #numéro de version changé, besoin de changer $$cb_str{} en $cb_str->{""}
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -273,26 +273,26 @@ sub userid{
 		print FICHADD encode_json($fdecode);
 	close(FICHADD);
 	buffer();
-	weechat::print($buffer, weechat::color("yellow") . "*\t" . weechat::color("blue") ."ID utilisateur ajouté au fichier $file");
+	weechat::print($buffer, "---\t" . weechat::color("blue") ."ID utilisateur ajouté au fichier $file");
 }
 
 #Affiche les message d'expulsion de twitch
 sub clearchat_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	$buffer = weechat::buffer_search("irc", "twitch." . $$cb_str{channel});
-	%tags = split(/[;=]/, $$cb_str{tags});
-	if (exists($tags{"ban-reason"})) {
+	$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
+	%tags = split(/[;=]/, $cb_str->{"tags"});
+	if ($tags{"ban-reason"}) {
 		$reason = "(" . join(" ", split(/[\\]s/, $tags{"ban-reason"})) . ")";
 	}
 	else {
 		$reason = "(Pas de raison.)";
 	}
 	if (exists($tags{"ban-duration"})) {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("magenta") . $$cb_str{text} . " a été expulsé du salon pour " . $tags{"ban-duration"} . "s. $reason");
+		return ":" . $cb_str->{"text"} . " NOTICE " . $cb_str->{"channel"} . " :a été expulsé du salon pour " . $tags{"ban-duration"} . "s. $reason";
 	}
-	else {
-		weechat::print($buffer, weechat::color("magenta") . "*\t" . weechat::color("magenta") . $$cb_str{text} . " a été banni du salon. $reason");
+	elsif (not exists($tags{"ban-duration"}) and exists($tags{"ban-reason"})) {
+		return ":" . $cb_str->{"text"} . " NOTICE " . $cb_str->{"channel"} . " :a été banni du salon. $reason";
 	}
 	return "";
 }
@@ -301,7 +301,7 @@ sub clearchat_cb {
 sub whisper_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	return ":" . $$cb_str{host} . " PRIVMSG " . $$cb_str{arguments};
+	return ":" . $cb_str->{"host"} . " PRIVMSG " . $cb_str->{"arguments"};
 }
 
 #Pour envoyer les message privé
@@ -309,11 +309,11 @@ sub privmsg_out_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	if ($$cb_str{channel} =~ "#") {
-		return "PRIVMSG " . $$cb_str{channel} . " " . $$cb_str{text};
+	if ($cb_str->{"channel"} =~ "#") {
+		return "PRIVMSG " . $cb_str->{"channel"} . " " . $cb_str->{"text"};
 	}
 	else {
-		return "PRIVMSG jtv :.w " . $$cb_str{nick} . " " . $$cb_str{text};
+		return "PRIVMSG jtv :.w " . $cb_str->{"nick"} . " " . $cb_str->{"text"};
 	}
 }
 
@@ -321,10 +321,11 @@ sub privmsg_out_cb {
 sub usernotice_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	$buffer = weechat::buffer_search("irc", "twitch." . $$cb_str{channel});
-	%tags = split(/[;=]/, $$cb_str{tags});
+	$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
+	%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
 	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
-	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason . " Message : " . $$cb_str{text});
+	if ($cb_str->{"text"}) { $reason = $reason . " Message : " . $cb_str->{"text"}; }
+	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason);
 	return "";
 }
 
