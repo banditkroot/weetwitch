@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.7"; #numéro de version changé, besoin de changer $$cb_str{} en $cb_str->{""}
+my $version = "0.7.7";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
