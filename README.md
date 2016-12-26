@@ -35,6 +35,9 @@ Suivre la chaine du salon courant.
     /unfollow
 Ne plus suivre la chaine du salon courant.
 
+    /groupchat
+Rejoins tous les chats de groupes de l'utilisateur.
+
 ##Joindre un salon et lancer le stream automatiquement :
 Après la commande `whostream`, il suffit d'entrer le numéro d'un stream afficher pour joindre le salon et que le stream se lance automatiquement.
 

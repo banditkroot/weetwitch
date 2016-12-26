@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.7";
+my $version = "0.7.8";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -19,6 +19,7 @@ weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.",
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
 weechat::hook_command("follow", "Juste taper /follow.", "", "", "", "follow", "");
 weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollow", "");
+weechat::hook_command("groupchat", "Juste taper /groupchat.", "", "", "", "groupchat", "");
 weechat::hook_modifier("irc_in_WHISPER", "whisper_cb", "");
 weechat::hook_modifier("irc_out_PRIVMSG", "privmsg_out_cb", "");
 weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
@@ -44,6 +45,28 @@ catch {
 userid(weechat::config_string(weechat::config_get("irc.server.twitch.nicks")));
 my $twitch_un = $user_id;
 
+#Groupchat
+sub groupchat {
+	buffer();
+	try {
+		$json = `curl -s -X GET http://chatdepot.twitch.tv/room_memberships?oauth_token=$token`;
+		$decode = decode_json($json);
+		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Liste des chats de groupe :");
+		if (scalar(@{$decode->{'memberships'}}) == 0) {
+			weechat::print($buffer, "Pas de chat de groupe.");
+			return weechat::WEECHAT_RC_OK;
+		}
+		foreach my $displaygroup (@{$decode->{'memberships'}}) {
+			weechat::command("", "/quote -server twitch JOIN #" . $displaygroup->{'room'}{'irc_channel'});
+			weechat::print($buffer, "*\t#" . $displaygroup->{'room'}{'irc_channel'} . " : " . weechat::color("bold") . $displaygroup->{'room'}{'display_name'});
+		}
+	}
+	catch {
+		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Impossible de récupérer les chats de groupe...");
+	};
+	return weechat::WEECHAT_RC_OK;
+}
+
 #Commande /whostream
 sub who_stream {
 	buffer();
@@ -56,7 +79,7 @@ sub who_stream {
 			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
 			return weechat::WEECHAT_RC_OK;
 		}
-		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Stream en cours :" . weechat::color("-bold"));
+		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Stream en cours :");
 		foreach my $displayname (@{$decode->{'streams'}}) {
 			if ($displayname->{'channel'}{'game'}) {
 				$game = "du " . weechat::color("bold") . $displayname->{'channel'}{'game'} . weechat::color("-bold");
