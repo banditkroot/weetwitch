@@ -5,8 +5,8 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.8";
-my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id);
+my $version = "0.7.9";
+my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
@@ -29,14 +29,15 @@ weechat::hook_modifier("irc_in_USERNOTICE", "usernotice_cb", "");
 weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
 
 my $file = weechat::info_get('weechat_dir', '') . "/weetwitch.json";
-open(FICHIER, "<", $file) or die weechat::print(weechat::current_buffer(), "*\tImpossible d'ouvrir le fichier de configuration.");
-	@liste = <FICHIER>;
-close(FICHIER);
-$json = join("", @liste);
-$fdecode = decode_json($json);
 try {
+	open(FICHIER, "<", $file) or die weechat::print(weechat::current_buffer(), "*\tImpossible d'ouvrir le fichier de configuration.");
+		@liste = <FICHIER>;
+	close(FICHIER);
+	$json = join("", @liste);
+	$fdecode = decode_json($json);
 	$token = $fdecode->{'token'};
 	$clientid = $fdecode->{'clientid'};
+	$player = $fdecode->{'player'};
 }
 catch {
 	weechat::print(weechat::current_buffer(), "*\tPas de token et client id Twitch trouvé.");
@@ -171,7 +172,7 @@ sub stream {
 		catch {
 			weechat::print($buffer, "Impossible de récupérer le topic.");
 		};
-		weechat::hook_process("livestreamer twitch.tv/$channel", 0, "stream_end", "");
+		weechat::hook_process("$player twitch.tv/$channel", 0, "stream_end", "");
 	}
 	return weechat::WEECHAT_RC_OK;
 }
