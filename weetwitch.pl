@@ -5,12 +5,12 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.9";
+my $version = "0.7.10";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
-my %tags;
+my (%tags, %badge);
 
 weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version, "GPL3", "Lance les streams Twitch.tv", "unload", "");
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
@@ -22,9 +22,10 @@ weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollo
 weechat::hook_command("groupchat", "Juste taper /groupchat.", "", "", "", "groupchat", "");
 weechat::hook_modifier("irc_in_WHISPER", "whisper_cb", "");
 weechat::hook_modifier("irc_out_PRIVMSG", "privmsg_out_cb", "");
-weechat::hook_modifier("irc_in_USERSTATE", "userroomstate_cb", "");
-weechat::hook_modifier("irc_in_ROOMSTATE", "userroomstate_cb", "");
-weechat::hook_modifier("irc_in_HOSTTARGET", "userroomstate_cb", "");
+#weechat::hook_modifier("irc_in_PRIVMSG", "privmsg_in_cb", "");
+weechat::hook_modifier("irc_in_USERSTATE", "ignore_cb", "");
+weechat::hook_modifier("irc_in_ROOMSTATE", "roomstate_cb", "");
+weechat::hook_modifier("irc_in_HOSTTARGET", "ignore_cb", "");
 weechat::hook_modifier("irc_in_USERNOTICE", "usernotice_cb", "");
 weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
 
@@ -341,15 +342,62 @@ sub privmsg_out_cb {
 	}
 }
 
+#Gestion des badges
+#sub privmsg_in_cb {
+#	(undef, undef, $server, $cb_str) = @_;
+#	if ($server ne "twitch") { return $cb_str; }
+#	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+#	if (substr($cb_str->{"tags"}, -1) eq "=") {
+#		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+#	}
+#	else {
+#		%tags = split(/[;=]/, $cb_str->{"tags"});
+#	}
+#	$reason = $cb_str->{"nick"};
+#	if ($tags{"badges"}) {
+#		%badge = split(/[\/,]/, $tags{"badges"});
+#		if (exists($badge{"subscriber"})) { $reason = "\$" . $reason; }
+#		if (exists($badge{"turbo"})) { $reason = "♻" . $reason; }
+#		if (exists($badge{"premium"})) { $reason = "♛" . $reason; }
+#		if (exists($badge{"global_mod"})) { $reason = "⚔" . $reason; }
+#		if (exists($badge{"admin"})) { $reason = "⛨" . $reason; }
+#		if (exists($badge{"staff"})) { $reason = "⚒" . $reason; }
+#	}
+#	return ":$reason PRIVMSG " . $cb_str->{"arguments"};
+#}
+
 #Subscription
 sub usernotice_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
-	%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+	if (substr($cb_str->{"tags"}, -1) eq "=") {
+		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+	}
+	else {
+		%tags = split(/[;=]/, $cb_str->{"tags"});
+	}
 	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
 	if ($cb_str->{"text"}) { $reason = $reason . " Message : " . $cb_str->{"text"}; }
 	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason);
+	return "";
+}
+
+#Mode des salons
+sub roomstate_cb {
+	(undef, undef, $server, $cb_str) = @_;
+	if ($server ne "twitch") { return $cb_str; }
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	%tags = split(/[;=]/, $cb_str->{"tags"});
+	if (exists($tags{"broadcaster-lang"})) {
+		undef $reason;
+		if ($tags{"emote-only"}) { $reason = "emote-only "; }
+		if ($tags{"followers-only"}) { $reason = $reason . "followers-only "; }
+		if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
+		if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
+		if ($tags{"subs-only"}) { $reason = $reason . "subs-only"; }
+		if ($reason) { return ":" . $cb_str->{"channel"} . " NOTICE " . $cb_str->{"channel"} . " :Mode : $reason"; }
+	}
 	return "";
 }
 
@@ -360,8 +408,8 @@ sub timeparse {
 	$time = "$day/$month/$year à $hh:$mm:" . int($ss);
 }
 
-#Ignore les commandes USERSTATE et ROOMSTATE envoyé par twitch
-sub userroomstate_cb {
+#Ignore les commandes USERSTATE et HOSTARGET envoyé par twitch
+sub ignore_cb {
 	return "";
 }
 
