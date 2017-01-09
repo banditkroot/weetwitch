@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.10";
+my $version = "0.7.11";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -388,15 +388,17 @@ sub roomstate_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	%tags = split(/[;=]/, $cb_str->{"tags"});
-	if (exists($tags{"broadcaster-lang"})) {
-		undef $reason;
-		if ($tags{"emote-only"}) { $reason = "emote-only "; }
-		if ($tags{"followers-only"}) { $reason = $reason . "followers-only "; }
-		if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
-		if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
-		if ($tags{"subs-only"}) { $reason = $reason . "subs-only"; }
-		if ($reason) { return ":" . $cb_str->{"channel"} . " NOTICE " . $cb_str->{"channel"} . " :Mode : $reason"; }
+	if (substr($cb_str->{"tags"}, -1) ne "=") {
+		%tags = split(/[;=]/, $cb_str->{"tags"});
+		if (exists($tags{"broadcaster-lang"})) {
+			undef $reason;
+			if ($tags{"emote-only"}) { $reason = "emote-only "; }
+			if ($tags{"followers-only"}) { $reason = $reason . "followers-only "; }
+			if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
+			if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
+			if ($tags{"subs-only"}) { $reason = $reason . "subs-only"; }
+			if ($reason) { return ":" . $cb_str->{"channel"} . " NOTICE " . $cb_str->{"channel"} . " :Mode : $reason"; }
+		}
 	}
 	return "";
 }
