@@ -20,6 +20,9 @@ Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://w
     /stream
 Regarder le stream du salon en cours.
 
+    /stream username
+Regarder le stream du salon *username*.
+
     /whostream
 Vérifier les sctreams suivit en cours.
 

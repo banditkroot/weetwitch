@@ -5,9 +5,9 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.11";
+my $version = "0.7.12";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
-my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason);
+my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
 my (%tags, %badge);
@@ -147,35 +147,50 @@ sub whotwitch {
 
 #Gère la commande /stream
 sub stream {
-	buffer();
-	if (server()) {
-		weechat::print($buffer, "---\tLancement du stream twitch.tv/$channel...");
-		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
-			$decode = decode_json($json);
-			if ($decode->{'_total'} == 1) {
-				foreach my $displayinfo (@{$decode->{'streams'}}) {
-					weechat::buffer_set(weechat::current_buffer(), "title", $displayinfo->{'channel'}{'status'});
-					weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
-					weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
-					weechat::print($buffer, "Spectateurs\t$displayinfo->{'viewers'}");
-					timeparse($displayinfo->{'created_at'});
-					weechat::print($buffer, "Commencé\tle $time");
-					weechat::print($buffer, "Vidéo source\t$displayinfo->{'video_height'}p à $displayinfo->{'average_fps'}fps");
-					weechat::print($buffer, "Délais\t$displayinfo->{'delay'}");
-					weechat::print($buffer, "Langage\t$displayinfo->{'channel'}{'broadcaster_language'}");
-					if ($displayinfo->{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
-					if ($displayinfo->{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
-					weechat::print($buffer, "Abonnés\t$displayinfo->{'channel'}{'followers'}");
-				}
-			}
-		}
-		catch {
-			weechat::print($buffer, "Impossible de récupérer le topic.");
-		};
-		weechat::hook_process("$player twitch.tv/$channel", 0, "stream_end", "");
+	$stream_arg = lc($_[2]);
+	weechat::print(weechat::current_buffer(), $stream_arg);
+	if ($stream_arg) {
+		$channel = $stream_arg;
+		undef $stream_arg;
+		weechat::command("", "/quote -server twitch JOIN #" . $channel);
+		userid($channel);
+		stream_launch();
+		return weechat::WEECHAT_RC_OK;
+	}
+	elsif (server() and not $stream_arg) {
+		stream_launch();
 	}
 	return weechat::WEECHAT_RC_OK;
+}
+
+#Lancement d'un scream
+sub stream_launch {
+	buffer();
+	weechat::print($buffer, "---\tLancement du stream twitch.tv/$channel...");
+	try {
+		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
+		$decode = decode_json($json);
+		if ($decode->{'_total'} == 1) {
+			foreach my $displayinfo (@{$decode->{'streams'}}) {
+				weechat::buffer_set(weechat::current_buffer(), "title", $displayinfo->{'channel'}{'status'});
+				weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
+				weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
+				weechat::print($buffer, "Spectateurs\t$displayinfo->{'viewers'}");
+				timeparse($displayinfo->{'created_at'});
+				weechat::print($buffer, "Commencé\tle $time");
+				weechat::print($buffer, "Vidéo source\t$displayinfo->{'video_height'}p à $displayinfo->{'average_fps'}fps");
+				weechat::print($buffer, "Délais\t$displayinfo->{'delay'}");
+				weechat::print($buffer, "Langage\t$displayinfo->{'channel'}{'broadcaster_language'}");
+				if ($displayinfo->{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
+				if ($displayinfo->{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
+				weechat::print($buffer, "Abonnés\t$displayinfo->{'channel'}{'followers'}");
+			}
+		}
+	}
+	catch {
+		weechat::print($buffer, "Impossible de récupérer le topic.");
+	};
+	weechat::hook_process("$player twitch.tv/$channel", 0, "stream_end", "");
 }
 
 #Fin de stream
@@ -255,8 +270,7 @@ sub buffer_input {
 	}
 	elsif ($string =~ m/^\d+$/) {
 		if ($string <= $#liste) {
-			weechat::command("", "/quote -server twitch JOIN #" . $liste[$string]);
-			weechat::command("", "/wait 1s /stream");
+			stream(0,0,$liste[$string]); #Placer en argument 2 à cause de /stream username
 		}
 	}
 	return weechat::WEECHAT_RC_OK;
