@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.12";
+my $version = "0.7.13";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -148,12 +148,10 @@ sub whotwitch {
 #Gère la commande /stream
 sub stream {
 	$stream_arg = lc($_[2]);
-	weechat::print(weechat::current_buffer(), $stream_arg);
 	if ($stream_arg) {
 		$channel = $stream_arg;
 		undef $stream_arg;
 		weechat::command("", "/quote -server twitch JOIN #" . $channel);
-		userid($channel);
 		stream_launch();
 		return weechat::WEECHAT_RC_OK;
 	}
@@ -167,12 +165,25 @@ sub stream {
 sub stream_launch {
 	buffer();
 	weechat::print($buffer, "---\tLancement du stream twitch.tv/$channel...");
+	weechat::hook_process("$player twitch.tv/$channel", 0, "stream_end", "");
+}
+
+#Fin de stream
+sub stream_end {
+	buffer();
+	weechat::print($buffer, "Fin du stream.");
+	return weechat::WEECHAT_RC_OK;
+}
+
+sub channel_info {
+	userid($channel);
+	buffer();
 	try {
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 		$decode = decode_json($json);
 		if ($decode->{'_total'} == 1) {
 			foreach my $displayinfo (@{$decode->{'streams'}}) {
-				weechat::buffer_set(weechat::current_buffer(), "title", $displayinfo->{'channel'}{'status'});
+				weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displayinfo->{'channel'}{'status'});
 				weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
 				weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
 				weechat::print($buffer, "Spectateurs\t$displayinfo->{'viewers'}");
@@ -190,14 +201,6 @@ sub stream_launch {
 	catch {
 		weechat::print($buffer, "Impossible de récupérer le topic.");
 	};
-	weechat::hook_process("$player twitch.tv/$channel", 0, "stream_end", "");
-}
-
-#Fin de stream
-sub stream_end {
-	buffer();
-	weechat::print($buffer, "Fin du stream.");
-	return weechat::WEECHAT_RC_OK;
 }
 
 #Affiche les viewers
@@ -402,6 +405,8 @@ sub roomstate_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	$channel = substr($cb_str->{"channel"},1);
+	channel_info();
 	if (substr($cb_str->{"tags"}, -1) ne "=") {
 		%tags = split(/[;=]/, $cb_str->{"tags"});
 		if (exists($tags{"broadcaster-lang"})) {
@@ -411,7 +416,7 @@ sub roomstate_cb {
 			if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
 			if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
 			if ($tags{"subs-only"}) { $reason = $reason . "subs-only"; }
-			if ($reason) { return ":" . $cb_str->{"channel"} . " NOTICE " . $cb_str->{"channel"} . " :Mode : $reason"; }
+			if ($reason) { return ":#" . $channel . " NOTICE #" . $channel . " :Mode : $reason"; }
 		}
 	}
 	return "";
