@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.14";
+my $version = "0.7.15";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -178,11 +178,12 @@ sub stream_end {
 #Récupère les info sur les chaines
 sub channel_info {
 	userid($channel);
+	buffer();
+	weechat::print($buffer, "Chaîne\t$channel");
 	try {
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 		$decode = decode_json($json);
 		if ($decode->{'_total'} == 1) {
-			buffer();
 			foreach my $displayinfo (@{$decode->{'streams'}}) {
 				weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displayinfo->{'channel'}{'status'});
 				weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
@@ -199,7 +200,7 @@ sub channel_info {
 			}
 		}
 		else {
-			weechat::print(weechat::buffer_search("irc", "twitch.#" . $channel), "*\t" . weechat::color("bold") . "Pas de stream en cours...");
+			weechat::print($buffer, "*\t" . weechat::color("bold") . "Pas de stream en cours...");
 		}
 	}
 	catch {
