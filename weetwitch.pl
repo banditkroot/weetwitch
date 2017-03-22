@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.15";
+my $version = "0.7.16";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -179,7 +179,7 @@ sub stream_end {
 sub channel_info {
 	userid($channel);
 	buffer();
-	weechat::print($buffer, "Chaîne\t$channel");
+	weechat::print($buffer, "Chaîne\t" . weechat::color("bold") . "$channel");
 	try {
 		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
 		$decode = decode_json($json);
@@ -314,10 +314,9 @@ sub userid{
 	foreach my $displayuser (@{$decode->{'users'}}) {
 		$user_id = $displayuser->{'_id'};
 	}
-	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}})]{'name'} = $user;
-	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}}) - 1]{'userid'} = $user_id;
+	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}})] = {"name", $user, "userid", $user_id};
 	open(FICHADD, ">:encoding(UTF-8)", $file);
-		print FICHADD encode_json($fdecode);
+		print FICHADD JSON->new->indent->space_after->encode($fdecode);
 	close(FICHADD);
 	buffer();
 	weechat::print($buffer, "---\t" . weechat::color("blue") ."ID utilisateur ajouté au fichier $file");
