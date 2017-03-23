@@ -5,9 +5,9 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.16";
+my $version = "0.7.17";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
-my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg);
+my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
 my (%tags, %badge);
@@ -53,20 +53,30 @@ sub groupchat {
 	try {
 		$json = `curl -s -X GET http://chatdepot.twitch.tv/room_memberships?oauth_token=$token`;
 		$decode = decode_json($json);
-		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Liste des chats de groupe :");
-		if (scalar(@{$decode->{'memberships'}}) == 0) {
+		$gpchat = $decode->{'memberships'};
+		if (scalar(@{$gpchat}) == 0) {
 			weechat::print($buffer, "Pas de chat de groupe.");
 			return weechat::WEECHAT_RC_OK;
 		}
-		foreach my $displaygroup (@{$decode->{'memberships'}}) {
+		foreach my $displaygroup (@{$gpchat}) {
 			weechat::command("", "/quote -server twitch JOIN #" . $displaygroup->{'room'}{'irc_channel'});
-			weechat::print($buffer, "*\t#" . $displaygroup->{'room'}{'irc_channel'} . " : " . weechat::color("bold") . $displaygroup->{'room'}{'display_name'});
 		}
 	}
 	catch {
 		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Impossible de récupérer les chats de groupe...");
 	};
 	return weechat::WEECHAT_RC_OK;
+}
+
+#Vérification des chat de groupe
+sub checkgroup {
+	foreach my $displaygpchat (@{$gpchat}) {
+		if ($channel eq $displaygpchat->{'room'}{'irc_channel'}) {
+			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displaygpchat->{'room'}{'display_name'});
+			return 0;
+		}
+	}
+	return 1;
 }
 
 #Commande /whostream
@@ -410,7 +420,7 @@ sub roomstate_cb {
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	$channel = substr($cb_str->{"channel"},1);
-	channel_info();
+	if (checkgroup()) { channel_info(); }
 	if (substr($cb_str->{"tags"}, -1) ne "=") {
 		%tags = split(/[;=]/, $cb_str->{"tags"});
 		if (exists($tags{"broadcaster-lang"})) {
