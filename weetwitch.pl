@@ -5,7 +5,7 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.17";
+my $version = "0.7.18";
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
@@ -366,7 +366,7 @@ sub privmsg_out_cb {
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	if ($cb_str->{"channel"} =~ "#") {
-		return "PRIVMSG " . $cb_str->{"channel"} . " " . $cb_str->{"text"};
+		return "PRIVMSG " . $cb_str->{"channel"} . " :" . $cb_str->{"text"};
 	}
 	else {
 		return "PRIVMSG jtv :.w " . $cb_str->{"nick"} . " " . $cb_str->{"text"};
