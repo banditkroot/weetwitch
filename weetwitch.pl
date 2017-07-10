@@ -5,8 +5,8 @@ use Try::Tiny;
 use Date::Parse;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.18";
-my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player);
+my $version = "0.7.19";
+my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat);
 my ($ss, $mm, $hh, $day, $month, $year, $time);
 my @liste;
@@ -111,9 +111,15 @@ sub who_stream {
 			else {
 				$partner = $incr;
 			}
+			if ($displayname->{'stream_type'} eq "live"){
+				$couleur = "gray";
+			}
+			else {
+				$couleur = "blue";
+			}
 			$incr++;
 			push @liste, lc($displayname->{'channel'}{'display_name'});
-			weechat::print($buffer, "$partner\t" . weechat::color("bold") . "$displayname->{'channel'}{'display_name'}" . weechat::color("-bold") . " stream $game $mature $displayname->{'viewers'} spectateurs.");
+			weechat::print($buffer, "$partner\t" . weechat::color($couleur) . weechat::color("bold") . "$displayname->{'channel'}{'display_name'}" . weechat::color("-bold") . " stream $game $mature $displayname->{'viewers'} spectateurs.");
 		}
 	}
 	catch {
