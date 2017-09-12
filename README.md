@@ -15,7 +15,7 @@ Lance les streams de [Twitch.tv](http://twitch.tv) dans Weechat avec [livestream
 * irc.chat.twitch.tv/443 pour le SSL
 
 ## Avant de commencer :
-Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://www.twitch.tv/kraken/oauth2/clients/new), pour obtenir un client-id et un Twitch token, à entrer dans le fichier `weetwitch.json`, vous pouvez aussi y modifier le player par défaut livestreamer par streamlink. Le script à besoin des [scopes](https://github.com/justintv/Twitch-API/blob/master/authentication.md#scope) `user_read`, `chat_login` et `user_follows_edit`. Le script perl doit être copié dans le dossier `~/.weechat/perl/autoload` et le fichier json dans le dossier `~/.weechat`.
+Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://www.twitch.tv/kraken/oauth2/clients/new), pour obtenir un client-id et un Twitch token, à entrer dans le fichier `weetwitch.json`, vous pouvez aussi y modifier le player par défaut livestreamer par streamlink. Le script à besoin des [scopes](https://github.com/justintv/Twitch-API/blob/master/authentication.md#scope) `user_read`, `chat_login` et `user_follows_edit`. Vous pouvez modifier le script, à la ligne 10, afin de changer le fuseau horaire des dates envoyées par l'API de Twitch. Le script perl doit être copié dans le dossier `~/.weechat/perl/autoload` et le fichier json dans le dossier `~/.weechat`.
 
 ## Commandes du script :
     /stream
