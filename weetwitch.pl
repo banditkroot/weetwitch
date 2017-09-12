@@ -450,7 +450,7 @@ sub timeparse {
 	($ss,$mm,$hh,$day,$month,$year, undef) = strptime(@_);
 	$year = 1900 + $year;
 	$hh = $hh + $zone;
-	$time = "$day/$month/$year à " . "$hh:$mm:" . int($ss);
+	$time = "$day/$month/$year à $hh:$mm:" . int($ss);
 }
 
 #Ignore les commandes USERSTATE et HOSTARGET envoyé par twitch
