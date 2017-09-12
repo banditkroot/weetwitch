@@ -3,15 +3,14 @@ use warnings;
 use JSON;
 use Try::Tiny;
 use Date::Parse;
-use Time::Zone;
+use Date::Format;
+use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.20";
-$ENV{'TZ'} = 'Europe/Paris';
+my $version = "0.7.21";
+my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
-my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat);
-my ($ss, $mm, $hh, $day, $month, $year, $time);
-my $zone = tz_local_offset() / 3600;
+my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
 my @liste;
 my (%tags, %badge);
 
@@ -447,10 +446,8 @@ sub roomstate_cb {
 
 #formatage des dates
 sub timeparse {
-	($ss,$mm,$hh,$day,$month,$year, undef) = strptime(@_);
-	$year = 1900 + $year;
-	$hh = $hh + $zone;
-	$time = "$day/$month/$year à $hh:$mm:" . int($ss);
+	$time = str2time(@_);
+	$time = $lang->time2str("%A %e %B %Y à %X", $time);
 }
 
 #Ignore les commandes USERSTATE et HOSTARGET envoyé par twitch
