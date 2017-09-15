@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use utf8;
 use JSON;
 use Try::Tiny;
 use Date::Parse;
@@ -7,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.21";
+my $version = "0.7.22";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
