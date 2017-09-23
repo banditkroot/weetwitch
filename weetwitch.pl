@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.0";
+my $version = "0.8.1";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -410,10 +410,14 @@ sub privmsg_in_cb {
 		if (exists($badge{"admin"})) { $reason = weechat::color("red") . "%" . $reason; }
 		if (exists($badge{"staff"})) { $reason = weechat::color("red") . "&" . $reason; }
 	}
-	$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
-	weechat::print($buffer, "$reason\t" . $cb_str->{"text"});
-	return "";
-#	return ":$reason PRIVMSG " . $cb_str->{"arguments"};
+	if (substr($cb_str->{"text"}, 0, 7) eq "\x01ACTION") {
+		return ":$reason PRIVMSG " . $cb_str->{"arguments"};
+	}
+	else {
+		$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
+		weechat::print($buffer, "$reason\t" . $cb_str->{"text"});
+		return "";
+	}
 }
 
 #Subscription
