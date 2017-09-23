@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.7.22";
+my $version = "0.8.0";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -25,7 +25,7 @@ weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollo
 weechat::hook_command("groupchat", "Juste taper /groupchat.", "", "", "", "groupchat", "");
 weechat::hook_modifier("irc_in_WHISPER", "whisper_cb", "");
 weechat::hook_modifier("irc_out_PRIVMSG", "privmsg_out_cb", "");
-#weechat::hook_modifier("irc_in_PRIVMSG", "privmsg_in_cb", "");
+weechat::hook_modifier("irc_in_PRIVMSG", "privmsg_in_cb", "");
 weechat::hook_modifier("irc_in_USERSTATE", "ignore_cb", "");
 weechat::hook_modifier("irc_in_ROOMSTATE", "roomstate_cb", "");
 weechat::hook_modifier("irc_in_HOSTTARGET", "ignore_cb", "");
@@ -383,28 +383,38 @@ sub privmsg_out_cb {
 }
 
 #Gestion des badges
-#sub privmsg_in_cb {
-#	(undef, undef, $server, $cb_str) = @_;
-#	if ($server ne "twitch") { return $cb_str; }
-#	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-#	if (substr($cb_str->{"tags"}, -1) eq "=") {
-#		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
-#	}
-#	else {
-#		%tags = split(/[;=]/, $cb_str->{"tags"});
-#	}
-#	$reason = $cb_str->{"nick"};
-#	if ($tags{"badges"}) {
-#		%badge = split(/[\/,]/, $tags{"badges"});
-#		if (exists($badge{"subscriber"})) { $reason = "\$" . $reason; }
-#		if (exists($badge{"turbo"})) { $reason = "♻" . $reason; }
-#		if (exists($badge{"premium"})) { $reason = "♛" . $reason; }
-#		if (exists($badge{"global_mod"})) { $reason = "⚔" . $reason; }
-#		if (exists($badge{"admin"})) { $reason = "⛨" . $reason; }
-#		if (exists($badge{"staff"})) { $reason = "⚒" . $reason; }
-#	}
+sub privmsg_in_cb {
+	(undef, undef, $server, $cb_str) = @_;
+	if ($server ne "twitch") { return $cb_str; }
+	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	if (substr($cb_str->{"tags"}, -1) eq "=") {
+		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+	}
+	else {
+		%tags = split(/[;=]/, $cb_str->{"tags"});
+	}
+	if ($tags{"display-name"}) {
+		$reason = $tags{"display-name"};
+	}
+	else {
+		$reason = $cb_str->{"nick"};
+	}
+	if ($tags{"badges"}) {
+		%badge = split(/[\/,]/, $tags{"badges"});
+		if (exists($badge{"subscriber"})) { $reason = weechat::color("bold") . $reason; }
+		if (exists($badge{"turbo"})) { $reason = weechat::color("magenta") . "+" . $reason; }
+		if (exists($badge{"premium"})) { $reason = weechat::color("cyan") . "+" . $reason; }
+		if (exists($badge{"moderator"})) { $reason = "@" . $reason; }
+		if (exists($badge{"partner"})) { $reason = weechat::color("brown") . "✓" . $reason; }
+		if (exists($badge{"global_mod"})) { $reason = weechat::color("red") . "@" . weechat::color("chat") . $reason; }
+		if (exists($badge{"admin"})) { $reason = weechat::color("red") . "%" . $reason; }
+		if (exists($badge{"staff"})) { $reason = weechat::color("red") . "&" . $reason; }
+	}
+	$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
+	weechat::print($buffer, "$reason\t" . $cb_str->{"text"});
+	return "";
 #	return ":$reason PRIVMSG " . $cb_str->{"arguments"};
-#}
+}
 
 #Subscription
 sub usernotice_cb {
