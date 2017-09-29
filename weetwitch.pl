@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.1";
+my $version = "0.8.2";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -415,7 +415,13 @@ sub privmsg_in_cb {
 	}
 	else {
 		$buffer = weechat::buffer_search("irc", "twitch." . $cb_str->{"channel"});
-		weechat::print($buffer, "$reason\t" . $cb_str->{"text"});
+		if ($cb_str->{"text"} =~ m/banditkroot/) {
+			$reason = "$reason\t" . weechat::color("red") . weechat::color("bold") . $cb_str->{"text"};
+		}
+		else {
+			$reason = "$reason\t" . $cb_str->{"text"};
+		}
+		weechat::print($buffer, $reason);
 		return "";
 	}
 }
