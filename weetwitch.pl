@@ -8,10 +8,10 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.3";
+my $version = "0.8.4";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
-my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $incr, $reason, $stream_arg, $gpchat, $time);
+my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
 my @liste;
 my (%tags, %badge);
 
@@ -386,7 +386,9 @@ sub privmsg_out_cb {
 sub privmsg_in_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
+	$w_str = $cb_str;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
+	if (substr($cb_str->{"channel"}, 0, 1) ne "#") { return $w_str; }
 	if (substr($cb_str->{"tags"}, -1) eq "=") {
 		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
 	}
