@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.4";
+my $version = "0.8.5";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -109,13 +109,13 @@ sub who_stream {
 				$mature = "avec";
 			}
 			if ($displayname->{'channel'}{'partner'}) {
-				$partner = weechat::color("yellow") . $incr;
+				$partner = weechat::color("blue") . $incr;
 			}
 			else {
 				$partner = $incr;
 			}
 			if ($displayname->{'stream_type'} eq "live"){
-				$couleur = "gray";
+				$couleur = "default";
 			}
 			else {
 				$couleur = "blue";
@@ -385,6 +385,7 @@ sub privmsg_out_cb {
 #Gestion des badges
 sub privmsg_in_cb {
 	(undef, undef, $server, $cb_str) = @_;
+	no utf8;
 	if ($server ne "twitch") { return $cb_str; }
 	$w_str = $cb_str;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
@@ -404,15 +405,15 @@ sub privmsg_in_cb {
 	if ($tags{"badges"}) {
 		%badge = split(/[\/,]/, $tags{"badges"});
 		if (exists($badge{"subscriber"})) { $reason = weechat::color("bold") . $reason; }
-		if (exists($badge{"turbo"})) { $reason = weechat::color("magenta") . "+" . $reason; }
-		if (exists($badge{"premium"})) { $reason = weechat::color("cyan") . "+" . $reason; }
-		if (exists($badge{"partner"})) { $reason = weechat::color("brown") . "✓" . $reason; }
-		if (exists($badge{"moderator"})) { $reason = weechat::color("red") . "@" . $reason; }
+		if (exists($badge{"turbo"})) { $reason = weechat::color("125") . "+" . $reason; }
+		if (exists($badge{"premium"})) { $reason = weechat::color("37") . "+" . $reason; }
+		if (exists($badge{"partner"})) { $reason = weechat::color("136") . "✓" . $reason; }
+		if (exists($badge{"moderator"})) { $reason = weechat::color("166") . "@" . $reason; }
 		if (exists($badge{"global_mod"})) { $reason = weechat::color("gray,red") . "@" . $reason; }
 		if (exists($badge{"admin"})) { $reason = weechat::color("white,red") . "%" . $reason; }
 		if (exists($badge{"staff"})) { $reason = weechat::color("white,magenta") . "&" . $reason; }
 	}
-	$reason =  weechat::color("gray") . $reason;
+	$reason =  weechat::color("245") . $reason;
 	return ":$reason PRIVMSG " . $cb_str->{"arguments"};
 }
 
@@ -429,8 +430,18 @@ sub usernotice_cb {
 	}
 	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
 	if ($cb_str->{"text"}) { $reason = $reason . " Message : " . $cb_str->{"text"}; }
-	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color("green") . $reason);
-	return "";
+	if ($tags{"msg-id"} eq "raid") {
+		$couleur = "red";
+	}
+	elsif ($tags{"msg-id"} eq "ritual") {
+		$couleur = "blue"
+	}
+	else {
+		$couleur = "green";
+	}
+	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color($couleur) . $reason);
+	#return "";
+	return;
 }
 
 #Mode des salons
@@ -443,12 +454,13 @@ sub roomstate_cb {
 	if (substr($cb_str->{"tags"}, -1) ne "=") {
 		%tags = split(/[;=]/, $cb_str->{"tags"});
 		if (exists($tags{"broadcaster-lang"})) {
-			undef $reason;
+			$reason = "";
 			if ($tags{"emote-only"}) { $reason = "emote-only "; }
 			if ($tags{"followers-only"}) { $reason = $reason . "followers-only "; }
 			if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
 			if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
 			if ($tags{"subs-only"}) { $reason = $reason . "subs-only"; }
+			if ($tags{"rituals"}) { $reason = $reason . $tags{"rituals"}; }
 			if ($reason) { return ":#" . $channel . " NOTICE #" . $channel . " :Mode : $reason"; }
 		}
 	}
