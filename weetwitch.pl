@@ -440,8 +440,7 @@ sub usernotice_cb {
 		$couleur = "green";
 	}
 	weechat::print($buffer, weechat::color("green") . "*\t" . weechat::color($couleur) . $reason);
-	#return "";
-	return;
+	return "";
 }
 
 #Mode des salons
