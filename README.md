@@ -40,10 +40,13 @@ Suivre la chaine du salon courant.
 Ne plus suivre la chaine du salon courant.
 
     /groupchat
-Rejoins tous les chats de groupes de l'utilisateur.
+Rejoins les salles privée des chaînes.
 
 ## Joindre un salon et lancer le stream automatiquement :
 Après la commande `whostream`, il suffit d'entrer le numéro d'un stream afficher pour joindre le salon et que le stream se lance automatiquement.
 
 -----
 J'ai décidé de faire un fichier de configuration en json pour enregister les user-id utilisés par le script, les user-id sont devenus obligatoire pour intéragir avec l'APIv5, cela permettra sur la longueur de réduir le nombre de requêtes faites à l'API et donc d'accélerer la vitesse du script.
+
+-----
+TODO : Préparer le script pour la nouvelle API.
