@@ -58,19 +58,23 @@ sub groupchat {
 		try {
 			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -H 'Authorization: OAuth $token' -X GET 'https://api.twitch.tv/kraken/chat/$user_id/rooms'`;
 			$decode = decode_json($json);
-			weechat::print($buffer, $decode->{"_total"});
-			if ($decode->{"_total"} eq "0") {
-				weechat::print($buffer, "Pas de chat de groupe.");
+			if ($decode->{'_total'} eq "0") {
+				weechat::print($buffer, "Pas de salle privée.");
 				return weechat::WEECHAT_RC_OK;
 			}
-			foreach my $displaygroup (@{$decode->{"rooms"}}) {
-				weechat::print($buffer, $displaygroup->{"_id"} . " : " . $displaygroup->{"name"} . " : " . $displaygroup->{"topic"});
-				weechat::command("", "/quote -server twitch JOIN #chatrooms:$user_id:" . $displaygroup->{"_id"});
-				weechat::buffer_set(weechat::buffer_search("irc", "twitch.#chatrooms:$user_id:" . $displaygroup->{"_id"}), "title", $displaygroup->{"name"}. " : " . $displaygroup->{"topic"});
+			$gpchat = $decode->{'rooms'};
+				weechat::print($buffer, weechat::color("red") . weechat::color("bold") . "Salles privées pour $channel :");
+			foreach my $displaygroup (@{$gpchat}) {
+				$couleur = "default";
+				if ($displaygroup->{'is_previewable'}) {
+					weechat::command("", "/quote -server twitch JOIN #chatrooms:$user_id:" . $displaygroup->{'_id'});
+					$couleur = "white";
+				}
+				weechat::print($buffer, weechat::color($couleur) . $displaygroup->{'name'} . " : " . $displaygroup->{'topic'} . " (" . $displaygroup->{'minimum_allowed_role'} . ")");
 			}
 		}
 		catch {
-			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Impossible de récupérer les chats de groupe...");
+			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Impossible de récupérer les salles privées...");
 		};
 	}
 	return weechat::WEECHAT_RC_OK;
@@ -79,8 +83,8 @@ sub groupchat {
 #Vérification des chat de groupe
 sub checkgroup {
 	foreach my $displaygpchat (@{$gpchat}) {
-		if ($channel eq $displaygpchat->{'room'}{'irc_channel'}) {
-			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displaygpchat->{'room'}{'display_name'});
+		if ($channel eq ("chatrooms:$user_id:" . $displaygpchat->{'_id'})) {
+			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displaygpchat->{'name'} . " : " . $displaygpchat->{'topic'});
 			return 0;
 		}
 	}
@@ -350,26 +354,26 @@ sub userid{
 sub clearchat_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	%tags = split(/[;=]/, $cb_str->{"tags"});
-	if ($tags{"ban-reason"}) {
-		$reason = "(" . join(" ", split(/[\\]s/, $tags{"ban-reason"})) . ")";
+	%tags = split(/[;=]/, $cb_str->{'tags'});
+	if ($tags{'ban-reason'}) {
+		$reason = "(" . join(" ", split(/[\\]s/, $tags{'ban-reason'})) . ")";
 	}
 	else {
 		$reason = "(Pas de raison.)";
 	}
-	if (exists($tags{"ban-duration"})) {
-		return ":" . $cb_str->{"text"} . " NOTICE " . $cb_str->{"channel"} . " :a été expulsé du salon pour " . $tags{"ban-duration"} . "s. $reason";
+	if (exists($tags{'ban-duration'})) {
+		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été expulsé du salon pour " . $tags{'ban-duration'} . "s. $reason";
 	}
-	elsif (not exists($tags{"ban-duration"}) and exists($tags{"ban-reason"})) {
-		return ":" . $cb_str->{"text"} . " NOTICE " . $cb_str->{"channel"} . " :a été banni du salon. $reason";
+	elsif (not exists($tags{'ban-duration'}) and exists($tags{'ban-reason'})) {
+		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été banni du salon. $reason";
 	}
 }
 
-#Affiche les whipers de twitch
+#Affiche les whispers de twitch
 sub whisper_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	return ":" . $cb_str->{"host"} . " PRIVMSG " . $cb_str->{"arguments"};
+	return ":" . $cb_str->{'host'} . " PRIVMSG " . $cb_str->{'arguments'};
 }
 
 #Pour envoyer les message privé
@@ -377,11 +381,11 @@ sub privmsg_out_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	if ($cb_str->{"channel"} =~ "#") {
-		return "PRIVMSG " . $cb_str->{"channel"} . " :" . $cb_str->{"text"};
+	if ($cb_str->{'channel'} =~ "#") {
+		return "PRIVMSG " . $cb_str->{'channel'} . " :" . $cb_str->{'text'};
 	}
 	else {
-		return "PRIVMSG jtv :.w " . $cb_str->{"nick"} . " " . $cb_str->{"text"};
+		return "PRIVMSG jtv :.w " . $cb_str->{'nick'} . " " . $cb_str->{'text'};
 	}
 }
 
@@ -392,32 +396,33 @@ sub privmsg_in_cb {
 	if ($server ne "twitch") { return $cb_str; }
 	$w_str = $cb_str;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	if (substr($cb_str->{"channel"}, 0, 1) ne "#") { return $w_str; }
-	if (substr($cb_str->{"tags"}, -1) eq "=") {
-		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+	if (substr($cb_str->{'channel'}, 0, 1) ne "#") { return $w_str; }
+	if ($cb_str->{'nick'} eq weechat::config_string(weechat::config_get("irc.server.twitch.nicks"))) { return ""; } #utilisé pour les salles privées, twitch renvoi les message de l'utilisateur
+	if (substr($cb_str->{'tags'}, -1) eq "=") {
+		%tags = split(/[;=]/, $cb_str->{'tags'} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
 	}
 	else {
-		%tags = split(/[;=]/, $cb_str->{"tags"});
+		%tags = split(/[;=]/, $cb_str->{'tags'});
 	}
-	if ($tags{"display-name"}) {
-		$reason = $tags{"display-name"};
+	if ($tags{'display-name'}) {
+		$reason = $tags{'display-name'};
 	}
 	else {
-		$reason = $cb_str->{"nick"};
+		$reason = $cb_str->{'nick'};
 	}
-	if ($tags{"badges"}) {
+	if ($tags{'badges'}) {
 		%badge = split(/[\/,]/, $tags{"badges"});
-		if (exists($badge{"subscriber"})) { $reason = weechat::color("bold") . $reason; }
-		if (exists($badge{"turbo"})) { $reason = weechat::color("125") . "+" . $reason; }
-		if (exists($badge{"premium"})) { $reason = weechat::color("37") . "+" . $reason; }
-		if (exists($badge{"partner"})) { $reason = weechat::color("136") . "✓" . $reason; }
-		if (exists($badge{"moderator"})) { $reason = weechat::color("166") . "@" . $reason; }
-		if (exists($badge{"global_mod"})) { $reason = weechat::color("gray,red") . "@" . $reason; }
-		if (exists($badge{"admin"})) { $reason = weechat::color("white,red") . "%" . $reason; }
-		if (exists($badge{"staff"})) { $reason = weechat::color("white,purple") . "&" . $reason; }
+		if (exists($badge{'subscriber'})) { $reason = weechat::color("bold") . $reason; }
+		if (exists($badge{'turbo'})) { $reason = weechat::color("125") . "+" . $reason; }
+		if (exists($badge{'premium'})) { $reason = weechat::color("37") . "+" . $reason; }
+		if (exists($badge{'partner'})) { $reason = weechat::color("136") . "✓" . $reason; }
+		if (exists($badge{'moderator'})) { $reason = weechat::color("166") . "@" . $reason; }
+		if (exists($badge{'global_mod'})) { $reason = weechat::color("gray,red") . "@" . $reason; }
+		if (exists($badge{'admin'})) { $reason = weechat::color("white,red") . "%" . $reason; }
+		if (exists($badge{'staff'})) { $reason = weechat::color("white,magenta") . "&" . $reason; }
 	}
 	$reason =  weechat::color("245") . $reason;
-	return ":$reason PRIVMSG " . $cb_str->{"arguments"};
+	return ":$reason PRIVMSG " . $cb_str->{'arguments'};
 }
 
 #Modification des notices
@@ -426,34 +431,34 @@ sub notice_in_cb {
 	no utf8;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	if ($cb_str->{"nick"} eq "sub" or $cb_str->{"nick"} eq "resub" or $cb_str->{"nick"} eq "subgift") {
+	if ($cb_str->{'nick'} eq "sub" or $cb_str->{'nick'} eq "resub" or $cb_str->{'nick'} eq "subgift") {
 		$couleur = "green";
 	}
-	elsif ($cb_str->{"nick"} eq "raid") {
+	elsif ($cb_str->{'nick'} eq "raid") {
 		$couleur = "red";
 	}
-	elsif ($cb_str->{"nick"} eq "ritual") {
+	elsif ($cb_str->{'nick'} eq "ritual") {
 		$couleur = "blue";
 	}
 	else {
 		$couleur = "default";
 	}
-	return ":" . weechat::color($couleur) . $cb_str->{"nick"} . " NOTICE " . $cb_str->{"channel"} . " :" . weechat::color($couleur) . $cb_str->{"text"};
+	return ":" . weechat::color($couleur) . $cb_str->{'nick'} . " NOTICE " . $cb_str->{'channel'} . " :" . weechat::color($couleur) . $cb_str->{'text'};
 }
 
 #Subscription raid ritual
 sub usernotice_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	if (substr($cb_str->{"tags"}, -1) eq "=") {
-		%tags = split(/[;=]/, $cb_str->{"tags"} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
+	if (substr($cb_str->{'tags'}, -1) eq "=") {
+		%tags = split(/[;=]/, $cb_str->{'tags'} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
 	}
 	else {
-		%tags = split(/[;=]/, $cb_str->{"tags"});
+		%tags = split(/[;=]/, $cb_str->{'tags'});
 	}
-	$reason = join(" ", split(/[\\]s/, $tags{"system-msg"}));
-	if ($cb_str->{"text"}) { $reason = $reason . " Message : " . $cb_str->{"text"}; }
-	return ":" . $tags{"msg-id"} . " NOTICE " . $cb_str->{"channel"} . " :$reason";
+	$reason = join(" ", split(/[\\]s/, $tags{'system-msg'}));
+	if ($cb_str->{'text'}) { $reason = $reason . " Message : " . $cb_str->{'text'}; }
+	return ":" . $tags{'msg-id'} . " NOTICE " . $cb_str->{'channel'} . " :$reason";
 }
 
 #Mode des salons
@@ -461,19 +466,18 @@ sub roomstate_cb {
 	(undef, undef, $server, $cb_str) = @_;
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
-	$channel = substr($cb_str->{"channel"},1);
-	#if (checkgroup()) { channel_info(); }
-	channel_info();
-	if (substr($cb_str->{"tags"}, -1) ne "=") {
-		%tags = split(/[;=]/, $cb_str->{"tags"});
-		if (exists($tags{"broadcaster-lang"})) {
+	$channel = substr($cb_str->{'channel'},1);
+	if (checkgroup()) { channel_info(); }
+	if (substr($cb_str->{'tags'}, -1) ne "=") {
+		%tags = split(/[;=]/, $cb_str->{'tags'});
+		if (exists($tags{'broadcaster-lang'})) {
 			$reason = "";
-			if ($tags{"emote-only"}) { $reason = "emote-only "; }
-			if ($tags{"followers-only"}) { $reason = $reason . "followers-only "; }
-			if ($tags{"r9k"}) { $reason = $reason . "r9k "; }
-			if ($tags{"slow"}) { $reason = $reason . "slow " . $tags{"slow"} . "s "; }
-			if ($tags{"subs-only"}) { $reason = $reason . "subs-only "; }
-			if ($tags{"rituals"}) { $reason = $reason . "rituals"; }
+			if ($tags{'emote-only'}) { $reason = "emote-only "; }
+			if ($tags{'followers-only'}) { $reason = $reason . "followers-only "; }
+			if ($tags{'r9k'}) { $reason = $reason . "r9k "; }
+			if ($tags{'slow'}) { $reason = $reason . "slow " . $tags{'slow'} . "s "; }
+			if ($tags{'subs-only'}) { $reason = $reason . "subs-only "; }
+			if ($tags{'rituals'}) { $reason = $reason . "rituals"; }
 			if ($reason) { return ":#" . $channel . " NOTICE #" . $channel . " :Mode : $reason"; }
 		}
 	}
