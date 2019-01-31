@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.6";
+my $version = "0.8.7";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -32,6 +32,7 @@ weechat::hook_modifier("irc_in_ROOMSTATE", "roomstate_cb", "");
 weechat::hook_modifier("irc_in_HOSTTARGET", "ignore_cb", "");
 weechat::hook_modifier("irc_in_USERNOTICE", "usernotice_cb", "");
 weechat::hook_modifier("irc_in_CLEARCHAT", "clearchat_cb", "");
+weechat::hook_modifier("irc_in_CLEARMSG", "ignore_cb", "");
 
 my $file = weechat::info_get('weechat_dir', '') . "/weetwitch.json";
 try {
