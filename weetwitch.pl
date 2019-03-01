@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.8.7";
+my $version = "0.9.0";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -19,6 +19,7 @@ weechat::register($sc_name, "BOUTARD Florent <bandit.kroot\@gmail.com", $version
 weechat::hook_command("whostream", "Juste taper /whostream.", "", "", "", "who_stream", "");
 weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur.", "", "", "", "whotwitch", "");
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
+weechat::hook_command("subcheck", "Juste taper /subcheck dans le channel désiré.", "", "", "", "subcheck", "");
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
 weechat::hook_command("follow", "Juste taper /follow.", "", "", "", "follow", "");
 weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollow", "");
@@ -170,6 +171,27 @@ sub whotwitch {
 			weechat::print("$buffer","Il follow\t" . $decode->{'_total'} . " personne" . $follow);
 			weechat::print("$buffer","URL\thttp://twitch.tv/$user/profile");
 		}
+	}
+	return weechat::WEECHAT_RC_OK;
+}
+
+#Vérifie si l'utilisateur est sub à la chaine
+sub subcheck {
+	if (server()) {
+		try {
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization:OAuth $token' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users/$twitch_un/subscriptions/$user_id`;
+			$decode = decode_json($json);
+			if ($decode->{'error'}) {
+				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Vous n'êtes pas abonné.");
+			}
+			else {
+				timeparse($decode->{'created_at'});
+				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Vous êtes abonné tier " . $decode->{'sub_plan'} / 1000 . ", depuis le $time.");
+			}
+		}
+		catch {
+			weechat::print(weechat::current_buffer(), "*\tImpossible de vérifier l\'abonnement.");
+		};
 	}
 	return weechat::WEECHAT_RC_OK;
 }
