@@ -42,6 +42,9 @@ Ne plus suivre la chaine du salon courant.
     /groupchat
 Rejoins les salles privée des chaînes.
 
+    /subcheck
+Vérifie l'abonnement à la chaine du salon courant.
+
 ## Joindre un salon et lancer le stream automatiquement :
 Après la commande `whostream`, il suffit d'entrer le numéro d'un stream afficher pour joindre le salon et que le stream se lance automatiquement.
 
