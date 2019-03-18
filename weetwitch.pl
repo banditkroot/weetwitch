@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.9.0";
+my $version = "0.9.1";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -378,17 +378,11 @@ sub clearchat_cb {
 	(undef, undef, undef, $cb_str) = @_;
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	%tags = split(/[;=]/, $cb_str->{'tags'});
-	if ($tags{'ban-reason'}) {
-		$reason = "(" . join(" ", split(/[\\]s/, $tags{'ban-reason'})) . ")";
+	if (exists($tags{'ban-duration'})) {
+		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été expulsé du salon pour " . $tags{'ban-duration'} . "s.";
 	}
 	else {
-		$reason = "(Pas de raison.)";
-	}
-	if (exists($tags{'ban-duration'})) {
-		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été expulsé du salon pour " . $tags{'ban-duration'} . "s. $reason";
-	}
-	elsif (not exists($tags{'ban-duration'}) and exists($tags{'ban-reason'})) {
-		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été banni du salon. $reason";
+		return ":" . $cb_str->{'text'} . " NOTICE " . $cb_str->{'channel'} . " :a été banni du salon.";
 	}
 }
 
@@ -515,7 +509,7 @@ sub timeparse {
 
 #Ignore les commandes USERSTATE et HOSTARGET envoyé par twitch
 sub ignore_cb {
-	return "";
+	#return "";
 }
 
 #Déchargement de script
