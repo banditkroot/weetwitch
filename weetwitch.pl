@@ -507,9 +507,9 @@ sub timeparse {
 	$time = $lang->time2str("%A %e %B %Y à %X", $time);
 }
 
-#Ignore les commandes USERSTATE et HOSTARGET envoyé par twitch
+#Ignore les commandes CLEARMSG, USERSTATE et HOSTARGET envoyé par twitch
 sub ignore_cb {
-	#return "";
+	return "";
 }
 
 #Déchargement de script
