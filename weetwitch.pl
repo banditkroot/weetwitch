@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.9.1";
+my $version = "0.10.0";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -101,10 +101,10 @@ sub who_stream {
 		$decode = decode_json($json);
 		@liste = undef;
 		$incr = 1;
-		if ($decode->{'_total'} eq "0") {
-			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
-			return weechat::WEECHAT_RC_OK;
-		}
+		#if ($decode->{'_total'} eq "0") {
+		#	weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
+		#	return weechat::WEECHAT_RC_OK;
+		#}
 		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Stream en cours :");
 		foreach my $displayname (@{$decode->{'streams'}}) {
 			if ($displayname->{'channel'}{'game'}) {
@@ -232,23 +232,22 @@ sub channel_info {
 	buffer();
 	weechat::print($buffer, "Chaîne\t" . weechat::color("bold") . "$channel");
 	try {
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
+		#$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
+		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$user_id`;
 		$decode = decode_json($json);
-		if ($decode->{'_total'} == 1) {
-			foreach my $displayinfo (@{$decode->{'streams'}}) {
-				weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displayinfo->{'channel'}{'status'});
-				weechat::print($buffer, "Titre\t$displayinfo->{'channel'}{'status'}");
-				weechat::print($buffer, "Jeu en cours\t$displayinfo->{'game'}");
-				weechat::print($buffer, "Spectateurs\t$displayinfo->{'viewers'}");
-				timeparse($displayinfo->{'created_at'});
-				weechat::print($buffer, "Commencé\tle $time");
-				weechat::print($buffer, "Vidéo source\t$displayinfo->{'video_height'}p à $displayinfo->{'average_fps'}fps");
-				weechat::print($buffer, "Délais\t$displayinfo->{'delay'}");
-				weechat::print($buffer, "Langage\t$displayinfo->{'channel'}{'broadcaster_language'}");
-				if ($displayinfo->{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
-				if ($displayinfo->{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
-				weechat::print($buffer, "Abonnés\t$displayinfo->{'channel'}{'followers'}");
-			}
+		if ($decode->{'stream'}) {
+			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $decode->{'stream'}{'channel'}{'status'});
+			weechat::print($buffer, "Titre\t$decode->{'stream'}{'channel'}{'status'}");
+			weechat::print($buffer, "Jeu en cours\t$decode->{'stream'}{'game'}");
+			weechat::print($buffer, "Spectateurs\t$decode->{'stream'}{'viewers'}");
+			timeparse($decode->{'stream'}{'created_at'});
+			weechat::print($buffer, "Commencé\tle $time");
+			weechat::print($buffer, "Vidéo source\t$decode->{'stream'}{'video_height'}p à $decode->{'stream'}{'average_fps'}fps");
+			weechat::print($buffer, "Délais\t$decode->{'stream'}{'delay'}");
+			weechat::print($buffer, "Langage\t$decode->{'stream'}{'channel'}{'broadcaster_language'}");
+			if ($decode->{'stream'}{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
+			if ($decode->{'stream'}{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
+			weechat::print($buffer, "Abonnés\t$decode->{'stream'}{'channel'}{'followers'}");
 		}
 		else {
 			weechat::print($buffer, "*\t" . weechat::color("bold") . "Pas de stream en cours...");
@@ -263,12 +262,10 @@ sub channel_info {
 sub viewer {
 	if (server()) {
 		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
+			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$user_id`;
 			$decode = decode_json($json);
-			if ($decode->{'_total'} == 1) {
-				foreach my $displayinfo (@{$decode->{'streams'}}) {
-					weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Actuellement $displayinfo->{'viewers'} spectateurs.");
-				}
+			if ($decode->{'stream'}) {
+				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Actuellement $decode->{'stream'}{'viewers'} spectateurs.");
 			}
 			else {
 				weechat::print(weechat::current_buffer(), "*\tPas de live en cours...");
