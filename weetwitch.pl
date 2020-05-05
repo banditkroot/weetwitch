@@ -97,7 +97,7 @@ sub checkgroup {
 sub who_stream {
 	buffer();
 	try {
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X GET https://api.twitch.tv/kraken/streams/followed`;
+		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X GET https://api.twitch.tv/kraken/streams/followed?limit=100`;
 		$decode = decode_json($json);
 		@liste = undef;
 		$incr = 1;
