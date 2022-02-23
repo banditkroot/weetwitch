@@ -8,7 +8,7 @@ use Date::Format;
 use Date::Language;
 
 my $sc_name = "WeeTwitch";
-my $version = "0.10.1";
+my $version = "0.11.0";
 my $lang = Date::Language->new('French');
 my ($token, $clientid, $channel, $server, $json, $decode, $fdecode, $user_id, $player, $couleur);
 my ($game, $user, $mature, $follow, $buffer, $partner, $cb_str, $w_str, $incr, $reason, $stream_arg, $gpchat, $time);
@@ -21,9 +21,6 @@ weechat::hook_command("whotwitch", "Taper /whotwitch et le nom d\'un utilisateur
 weechat::hook_command("stream", "Juste taper /stream dans le channel désiré.", "", "", "", "stream", "");
 weechat::hook_command("subcheck", "Juste taper /subcheck dans le channel désiré.", "", "", "", "subcheck", "");
 weechat::hook_command("viewers", "Juste taper /viewers.", "", "", "", "viewer", "");
-weechat::hook_command("follow", "Juste taper /follow.", "", "", "", "follow", "");
-weechat::hook_command("unfollow", "Juste taper /unfollow.", "", "", "", "unfollow", "");
-weechat::hook_command("groupchat", "Juste taper /groupchat.", "", "", "", "groupchat", "");
 weechat::hook_modifier("irc_in_WHISPER", "whisper_cb", "");
 weechat::hook_modifier("irc_out_PRIVMSG", "privmsg_out_cb", "");
 weechat::hook_modifier("irc_in2_PRIVMSG", "privmsg_in_cb", "");
@@ -53,87 +50,32 @@ catch {
 userid(weechat::config_string(weechat::config_get("irc.server.twitch.nicks")));
 my $twitch_un = $user_id;
 
-#Groupchat
-sub groupchat {
-	if (server()) {
-		buffer();
-		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -H 'Authorization: OAuth $token' -X GET 'https://api.twitch.tv/kraken/chat/$user_id/rooms'`;
-			$decode = decode_json($json);
-			if ($decode->{'_total'} eq "0") {
-				weechat::print($buffer, "Pas de salle privée.");
-				return weechat::WEECHAT_RC_OK;
-			}
-			$gpchat = $decode->{'rooms'};
-				weechat::print($buffer, weechat::color("red") . weechat::color("bold") . "Salles privées pour $channel :");
-			foreach my $displaygroup (@{$gpchat}) {
-				$couleur = "default";
-				if ($displaygroup->{'is_previewable'}) {
-					weechat::command("", "/quote -server twitch JOIN #chatrooms:$user_id:" . $displaygroup->{'_id'});
-					$couleur = "white";
-				}
-				weechat::print($buffer, weechat::color($couleur) . $displaygroup->{'name'} . " : " . $displaygroup->{'topic'} . " (" . $displaygroup->{'minimum_allowed_role'} . ")");
-			}
-		}
-		catch {
-			weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Impossible de récupérer les salles privées...");
-		};
-	}
-	return weechat::WEECHAT_RC_OK;
-}
-
-#Vérification des chat de groupe
-sub checkgroup {
-	foreach my $displaygpchat (@{$gpchat}) {
-		if ($channel eq ("chatrooms:$user_id:" . $displaygpchat->{'_id'})) {
-			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $displaygpchat->{'name'} . " : " . $displaygpchat->{'topic'});
-			return 0;
-		}
-	}
-	return 1;
-}
-
 #Commande /whostream
 sub who_stream {
 	buffer();
 	try {
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X GET https://api.twitch.tv/kraken/streams/followed?limit=100`;
+		$json = `curl -s -X GET 'https://api.twitch.tv/helix/streams/followed?user_id=$twitch_un' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
+		weechat::print(weechat::current_buffer(), "curl -s -X GET 'https://api.twitch.tv/helix/streams/followed?user_id=$twitch_un' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'");
 		$decode = decode_json($json);
 		@liste = undef;
 		$incr = 1;
-		#if ($decode->{'_total'} eq "0") {
-		#	weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Pas de stream en cours...");
-		#	return weechat::WEECHAT_RC_OK;
-		#}
 		weechat::print($buffer, "---\t" . weechat::color("red") . weechat::color("bold") . "Stream en cours :");
-		foreach my $displayname (@{$decode->{'streams'}}) {
-			if ($displayname->{'channel'}{'game'}) {
-				$game = "du " . weechat::color("bold") . $displayname->{'channel'}{'game'} . weechat::color("-bold");
+		foreach my $displayname (@{$decode->{'data'}}) {
+			if ($displayname->{'game_name'}) {
+				$game = "du " . weechat::color("bold") . $displayname->{'game_name'} . weechat::color("-bold");
 			}
 			else {
 				$game = "aucun jeu";
 			}
-			if ($displayname->{'channel'}{'mature'}) {
-				$mature = "en mature avec";
-			}
-			else {
-				$mature = "avec";
-			}
-			if ($displayname->{'channel'}{'partner'}) {
-				$partner = weechat::color("blue") . $incr;
-			}
-			else {
-				$partner = $incr;
-			}
-			if ($displayname->{'stream_type'} eq "live"){
+			if ($displayname->{'type'} eq "live"){
 				$couleur = "default";
 			}
 			else {
 				$couleur = "blue";
 			}
 			$incr++;
-			push @liste, lc($displayname->{'channel'}{'display_name'});
-			weechat::print($buffer, "$partner\t" . weechat::color($couleur) . weechat::color("bold") . "$displayname->{'channel'}{'display_name'}" . weechat::color("-bold") . " stream $game $mature $displayname->{'viewers'} spectateurs.");
+			push @liste, lc($displayname->{'user_name'});
+			weechat::print($buffer, "\t" . weechat::color($couleur) . weechat::color("bold") . "$displayname->{'user_name'}" . weechat::color("-bold") . " stream $game avec $displayname->{'viewer_count'} spectateurs.");
 		}
 	}
 	catch {
@@ -147,28 +89,26 @@ sub whotwitch {
 	$user = lc($_[2]);
 	if ($user) {
 		buffer();
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users?login=$user&api_version=5`;
+		$json = `curl -s -X GET 'https://api.twitch.tv/helix/users?login=$user' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 		$decode = decode_json($json);
-		foreach my $displayuser (@{$decode->{'users'}}) {
-			$user_id = $displayuser->{'_id'};
+		foreach my $displayuser (@{$decode->{'data'}}) {
+			$user_id = $displayuser->{'id'};
 			weechat::print("$buffer","Utilisateur\t". weechat::color("bold") . $displayuser->{'display_name'} . weechat::color("-bold"));
-			weechat::print("$buffer","Type\t$displayuser->{'type'}");
-			if ($decode->{'bio'}) { weechat::print("$buffer","Bio\t$displayuser->{'bio'}"); }
+			if ($displayuser->{'type'}) { weechat::print("$buffer","Type\t$displayuser->{'type'}"); }
+			if ($displayuser->{'description'}) { weechat::print("$buffer","Bio\t$displayuser->{'description'}"); }
 			timeparse($displayuser->{'created_at'});
 			weechat::print("$buffer","Créé le\t$time");
-			timeparse($displayuser->{'updated_at'});
-			weechat::print("$buffer","Dernière MAJ\t$time");
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid'  -X GET https://api.twitch.tv/kraken/users/$user_id/follows/channels`;
+			$json = `curl -s -X GET 'https://api.twitch.tv/helix/users/follows?from_id=$user_id' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 			$decode = decode_json($json);
-			if ($decode->{'_total'} eq "1") {
-				foreach my $displayfollow (@{$decode->{'follows'}}) {
-					$follow = " : " . $displayfollow->{'channel'}{'name'};
+			if ($decode->{'total'} eq "1") {
+				foreach my $displayfollow (@{$decode->{'data'}}) {
+					$follow = " : " . $displayfollow->{'to_name'};
 				}
 			}
 			else {
 				$follow = "s.";
 			}
-			weechat::print("$buffer","Il follow\t" . $decode->{'_total'} . " personne" . $follow);
+			weechat::print("$buffer","Il follow\t" . $decode->{'total'} . " personne" . $follow);
 			weechat::print("$buffer","URL\thttp://twitch.tv/$user/profile");
 		}
 	}
@@ -179,14 +119,15 @@ sub whotwitch {
 sub subcheck {
 	if (server()) {
 		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization:OAuth $token' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users/$twitch_un/subscriptions/$user_id`;
+			$json = `curl -s -X GET 'https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=$user_id&user_id=$twitch_un' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 			$decode = decode_json($json);
 			if ($decode->{'error'}) {
 				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Vous n'êtes pas abonné.");
 			}
 			else {
-				timeparse($decode->{'created_at'});
-				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Vous êtes abonné tier " . $decode->{'sub_plan'} / 1000 . ", depuis le $time.");
+				foreach my $displaytier (@{$decode->{'data'}}) {
+					weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Vous êtes abonné tier " . $displaytier->{'tier'} / 1000 . ".");
+				}
 			}
 		}
 		catch {
@@ -232,22 +173,20 @@ sub channel_info {
 	buffer();
 	weechat::print($buffer, "Chaîne\t" . weechat::color("bold") . "$channel");
 	try {
-		#$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams?channel=$user_id`;
-		$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$user_id`;
+		$json = `curl -s -X GET 'https://api.twitch.tv/helix/streams?user_id=$user_id' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 		$decode = decode_json($json);
-		if ($decode->{'stream'}) {
-			weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $decode->{'stream'}{'channel'}{'status'});
-			weechat::print($buffer, "Titre\t$decode->{'stream'}{'channel'}{'status'}");
-			weechat::print($buffer, "Jeu en cours\t$decode->{'stream'}{'game'}");
-			weechat::print($buffer, "Spectateurs\t$decode->{'stream'}{'viewers'}");
-			timeparse($decode->{'stream'}{'created_at'});
-			weechat::print($buffer, "Commencé\tle $time");
-			weechat::print($buffer, "Vidéo source\t$decode->{'stream'}{'video_height'}p à $decode->{'stream'}{'average_fps'}fps");
-			weechat::print($buffer, "Délais\t$decode->{'stream'}{'delay'}");
-			weechat::print($buffer, "Langage\t$decode->{'stream'}{'channel'}{'broadcaster_language'}");
-			if ($decode->{'stream'}{'channel'}{'mature'}) { weechat::print($buffer, "*\tStream mature"); }
-			if ($decode->{'stream'}{'channel'}{'partner'}) { weechat::print($buffer, "*\tStream partenaire"); }
-			weechat::print($buffer, "Abonnés\t$decode->{'stream'}{'channel'}{'followers'}");
+		if (@{$decode->{'data'}}) {
+			foreach my $decodechan (@{$decode->{'data'}}) {
+				weechat::buffer_set(weechat::buffer_search("irc", "twitch.#" . $channel), "title", $decodechan->{'title'});
+				weechat::print($buffer, "Titre\t$decodechan->{'title'}");
+				weechat::print($buffer, "Jeu en cours\t$decodechan->{'game_name'}");
+				weechat::print($buffer, "Spectateurs\t$decodechan->{'viewer_count'}");
+				weechat::print($buffer, "Type\t$decodechan->{'type'}");
+				timeparse($decodechan->{'started_at'});
+				weechat::print($buffer, "Commencé\tle $time");
+				weechat::print($buffer, "Langage\t$decodechan->{'language'}");
+				if ($decodechan->{'is_mature'}) { weechat::print($buffer, "*\tStream mature"); }
+			}
 		}
 		else {
 			weechat::print($buffer, "*\t" . weechat::color("bold") . "Pas de stream en cours...");
@@ -262,10 +201,12 @@ sub channel_info {
 sub viewer {
 	if (server()) {
 		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/streams/$user_id`;
+			$json = `curl -s -X GET 'https://api.twitch.tv/helix/streams?user_id=$user_id' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 			$decode = decode_json($json);
-			if ($decode->{'stream'}) {
-				weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Actuellement $decode->{'stream'}{'viewers'} spectateurs.");
+			if (@{$decode->{'data'}}) {
+				foreach my $decodeview (@{$decode->{'data'}}) {
+					weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Actuellement $decodeview->{'viewer_count'} spectateurs.");
+				}
 			}
 			else {
 				weechat::print(weechat::current_buffer(), "*\tPas de live en cours...");
@@ -273,34 +214,6 @@ sub viewer {
 		}
 		catch {
 			weechat::print(weechat::current_buffer(), "*\tImpossible de récupérer le topic.");
-		};
-	}
-	return weechat::WEECHAT_RC_OK;
-}
-
-#Suivre une chaine
-sub follow {
-	if (server()) {
-		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X PUT https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$user_id`;
-			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "Chaine suivie.");
-		}
-		catch {
-			weechat::print(weechat::current_buffer(), "*\tImpossible de suivre la chaine.");
-		};
-	}
-	return weechat::WEECHAT_RC_OK;
-}
-
-#Ne plus suivre une chaine
-sub unfollow {
-	if (server()) {
-		try {
-			$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Authorization: OAuth $token' -X DELETE https://api.twitch.tv/kraken/users/$twitch_un/follows/channels/$user_id`;
-			weechat::print(weechat::current_buffer(), "*\t" . weechat::color("magenta") . "La chaine n'est plus suivie.");
-		}
-		catch {
-			weechat::print(weechat::current_buffer(), "*\tImpossible de ne plus suivre la chaine.");
 		};
 	}
 	return weechat::WEECHAT_RC_OK;
@@ -357,10 +270,10 @@ sub userid{
 			return;
 		}
 	}
-	$json = `curl -s -H 'Accept: application/vnd.twitchtv.v5+json' -H 'Client-ID: $clientid' -X GET https://api.twitch.tv/kraken/users?login=$user&api_version=5`;
+	$json = `curl -s -X GET 'https://api.twitch.tv/helix/users?login=$user' -H 'Authorization: Bearer $token' -H 'Client-Id: $clientid'`;
 	$decode = decode_json($json);
-	foreach my $displayuser (@{$decode->{'users'}}) {
-		$user_id = $displayuser->{'_id'};
+	foreach my $displayuser (@{$decode->{'data'}}) {
+		$user_id = $displayuser->{'id'};
 	}
 	$fdecode->{'id'}[scalar(@{$fdecode->{'id'}})] = {"name", $user, "userid", $user_id};
 	open(FICHADD, ">:encoding(UTF-8)", $file);
@@ -412,19 +325,10 @@ sub privmsg_in_cb {
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	if (substr($cb_str->{'channel'}, 0, 1) ne "#") { return $w_str; }
 	if ($cb_str->{'nick'} eq weechat::config_string(weechat::config_get("irc.server.twitch.nicks"))) { return ""; } #utilisé pour les salles privées, twitch renvoi les message de l'utilisateur
-	if (substr($cb_str->{'tags'}, -1) eq "=") {
-		%tags = split(/[;=]/, $cb_str->{'tags'} . " "); #ajouter de " " car user-type n'est pas systématiquement envoyé
-	}
-	else {
-		%tags = split(/[;=]/, $cb_str->{'tags'});
-	}
-	if ($tags{'display-name'}) {
-		$reason = $tags{'display-name'};
-	}
-	else {
-		$reason = $cb_str->{'nick'};
-	}
-	if ($tags{'badges'}) {
+	$reason = $cb_str->{'nick'};
+	my @taglist = split(/[;]/, $cb_str->{'tags'});
+	if (substr($taglist[1], -1) ne "=") {
+		%tags = split(/[=]/, $taglist[1]);
 		%badge = split(/[\/,]/, $tags{"badges"});
 		if (exists($badge{'subscriber'})) { $reason = weechat::color("bold") . $reason; }
 		if (exists($badge{'turbo'})) { $reason = weechat::color("125") . "+" . $reason; }
@@ -481,7 +385,7 @@ sub roomstate_cb {
 	if ($server ne "twitch") { return $cb_str; }
 	$cb_str = weechat::info_get_hashtable("irc_message_parse", {"message" => $cb_str});
 	$channel = substr($cb_str->{'channel'},1);
-	if (checkgroup()) { channel_info(); }
+	channel_info();
 	if (substr($cb_str->{'tags'}, -1) ne "=") {
 		%tags = split(/[;=]/, $cb_str->{'tags'});
 		if (exists($tags{'broadcaster-lang'})) {

@@ -15,7 +15,7 @@ Lance les streams de [Twitch.tv](https://twitch.tv) dans Weechat avec [livestrea
 * irc.chat.twitch.tv/6697 pour le SSL
 
 ## Avant de commencer :
-Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://www.twitch.tv/kraken/oauth2/clients/new), pour obtenir un client-id et un Twitch token, à entrer dans le fichier `weetwitch.json`, vous pouvez aussi y modifier le player par défaut livestreamer par streamlink. Le script à besoin des [scopes](https://dev.twitch.tv/docs/authentication/#scopes) `user_read`, `chat_login`, `user_follows_edit` et `user_subscriptions`. Le script perl doit être copié dans le dossier `~/.weechat/perl/autoload` et le fichier json dans le dossier `~/.weechat`.
+Il est nécessaire [d'enregistrer une application sur l'API de Twitch](https://dev.twitch.tv/docs/authentication#registration), pour obtenir un client-id et un Twitch token, à entrer dans le fichier `weetwitch.json`, vous pouvez aussi y modifier le player par défaut livestreamer par streamlink. Le script à besoin des [scopes](https://dev.twitch.tv/docs/authentication/#scopes), sélectionner les tous pour ne pas à avoir à en générer un nouveau pour de futur mise à jours. Le script perl doit être copié dans le dossier `~/.weechat/perl/autoload` et le fichier json dans le dossier `~/.weechat`.
 
 ## Commandes du script :
     /stream
@@ -33,15 +33,6 @@ Affiche les informations d'un utilisateur Twitch.
     /viewers
 Affiche le nombre de spectateurs d'un stream en cours.
 
-    /follow
-Suivre la chaine du salon courant.
-
-    /unfollow
-Ne plus suivre la chaine du salon courant.
-
-    /groupchat
-Rejoins les salles privée des chaînes.
-
     /subcheck
 Vérifie l'abonnement à la chaine du salon courant.
 
@@ -49,7 +40,4 @@ Vérifie l'abonnement à la chaine du salon courant.
 Après la commande `whostream`, il suffit d'entrer le numéro d'un stream afficher pour joindre le salon et que le stream se lance automatiquement.
 
 -----
-J'ai décidé de faire un fichier de configuration en json pour enregister les user-id utilisés par le script, les user-id sont devenus obligatoire pour intéragir avec l'APIv5, cela permettra sur la longueur de réduir le nombre de requêtes faites à l'API et donc d'accélerer la vitesse du script.
-
------
-TODO : Préparer le script pour la nouvelle API.
+J'ai décidé de faire un fichier de configuration en json pour enregister les user-id utilisés par le script, les user-id sont devenus obligatoire pour intéragir avec l'API depuis la version 5, cela permettra sur la longueur de réduir le nombre de requêtes faites à l'API et donc d'accélerer la vitesse du script.
